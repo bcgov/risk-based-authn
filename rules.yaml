@@ -1,0 +1,20 @@
+rules:
+  - name: velocity
+    intervalSeconds: 60
+    limit: 10
+    strategy: average
+    
+  - name: denylist
+    ips:
+      - 1.2.3.4
+      - 192.168.1.0/24
+    strategy: override
+
+services:
+  nats:
+    url: "nats://localhost:4222"
+    enabled: true
+    threshold: 0.1
+  redis:
+    enabled: true
+    host: localhost:6379

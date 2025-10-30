@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+  nats:
+    image: nats:latest
+    container_name: nats-server
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # Monitoring UI
+    command: ["-DV"]  # Debug & verbose logs
+
+volumes:
+  redis-data:
+
