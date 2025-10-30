@@ -13,7 +13,7 @@ rules:
 services:
   nats:
     url: "nats://localhost:4222"
-    enabled: true
+    enabled: false
     threshold: 0.1
   redis:
     enabled: true
