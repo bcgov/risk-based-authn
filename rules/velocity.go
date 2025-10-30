@@ -13,8 +13,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var x = 1
-
 func EvaluateVelocityRisk(ctx context.Context, ip string, interval time.Duration, limit int) (float64, error) {
 	now := time.Now().UnixMilli()
 	windowStart := float64(now - interval.Milliseconds())
@@ -51,6 +49,11 @@ func EvaluateVelocityRisk(ctx context.Context, ip string, interval time.Duration
 
 func parseVelocityRule(raw map[string]interface{}) (util.NamedRiskHandler, error) {
 	interval, ok := raw["intervalSeconds"].(int)
+
+	if redisErr := services.PingRedis(); redisErr != nil {
+		return util.NamedRiskHandler{}, errors.New("velocity: a valid redis connection is required for this rule. Check redis configuration.")
+	}
+
 	if !ok {
 		return util.NamedRiskHandler{}, errors.New("velocity: missing or invalid intervalSeconds")
 	}
