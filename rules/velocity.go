@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"rba/services"
 	"rba/util"
-	"slices"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -64,18 +63,18 @@ func parseVelocityRule(raw map[string]interface{}) (util.NamedRiskHandler, error
 	}
 
 	strategy, ok := raw["strategy"].(string)
-	if !ok || !slices.Contains(util.Strategies, strategy) {
+	if !ok || !util.IsValidStrategy(strategy) {
 		return util.NamedRiskHandler{}, errors.New("velocity: missing or invalid strategy")
 	}
 
 	return util.NamedRiskHandler{
-		Name:     "velocity",
+		Name:     util.Rules.Velocity,
 		Strategy: strategy,
 		Handler: func(ctx context.Context, args map[string]interface{}) util.RiskResult {
 			now := time.Now().UnixMilli()
 			println(now)
 			base := util.RiskResult{
-				Name:     "velocity",
+				Name:     util.Rules.Velocity,
 				Strategy: strategy,
 				Score:    0,
 				Err:      nil,

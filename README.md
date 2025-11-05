@@ -129,3 +129,35 @@ Contributions are welcome! Please follow these steps:
 Thank you for checking out this project! We hope it's helpful for your risk assessment needs.
 
 This README is written by [readme.ai](https://readme-generator-phi.vercel.app/), the AI-powered README generator.
+
+
+## Generating sig
+
+The server authentication uses HMAC. You can configure the secrets and keys in the environment file, for example:
+
+API_KEY_CLIENT_1=abcd1234
+API_SECRET_CLIENT_1=supersecret1
+API_KEY_CLIENT_2=wxyz5678
+API_SECRET_CLIENT_2=supersecret2
+ALLOWED_SKEW_MINUTES=0
+
+Multiple secrets are provided for different clients and/or secret rotation. As long as there is a matching key and secret, e.g. API_KEY_X, API_SECRET_X it will be used.
+
+If ALLOWED_SKEW_MINUTES is set to 0 it will be ignored (useful for local development). You can use the function below to generate a signature for testing:
+
+``` golang
+func print() {
+	keyID := "abcd1234" // Match to what's in your .env
+	secret := []byte("supersecret1") // match to what's in your .env
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+
+	message := timestamp // or timestamp + body if you include body
+	mac := hmac.New(sha256.New, secret)
+	mac.Write([]byte(message))
+	signature := hex.EncodeToString(mac.Sum(nil))
+
+	fmt.Println("X-Key-ID:", keyID)
+	fmt.Println("X-Timestamp:", timestamp)
+	fmt.Println("X-Signature:", signature)
+}
+```

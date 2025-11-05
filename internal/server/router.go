@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"rba/internal/server/ruleRouter"
 	"rba/util"
 	"sync"
 	"time"
@@ -16,6 +18,8 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	fmt.Printf("%+v\n", s.rules)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
@@ -30,7 +34,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 		w.Write([]byte("ok"))
 	})
 
-	r.Post("/event", s.EventHandler)
+	// Group for routes requiring auth
+	r.Group(func(protected chi.Router) {
+		protected.Use(AuthMiddleware(s.authKeys))
+		protected.Post("/event", s.EventHandler)
+
+		protected.Mount("/configuration/rules/denylist", ruleRouter.DenyListRouter(s.rules))
+	})
+
 	return r
 }
 

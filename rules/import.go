@@ -4,14 +4,15 @@ import (
 	"log"
 	"os"
 	"rba/services"
+	"rba/types"
 	"rba/util"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Rules    []RuleConfig   `yaml:"rules"`
-	Services ServicesConfig `yaml:"services"`
+	Rules    []types.RuleConfig `yaml:"rules"`
+	Services ServicesConfig     `yaml:"services"`
 }
 
 type ServicesConfig struct {
@@ -30,34 +31,30 @@ type RedisConfig struct {
 	Enabled bool   `yaml:"enabled"`
 }
 
-type RuleConfig struct {
-	// Ah the missing piece. This yaml syntax is saying to push the name key into Name, which is how the case changes
-	Name   string                 `yaml:"name"`
-	Params map[string]interface{} `yaml:",inline"`
-}
-
 type Rule struct {
 	Name string
 }
 
-func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, error) {
+func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, []types.RuleConfig, error) {
 	var handlers = make(map[string][]util.NamedRiskHandler)
 	data, err := os.ReadFile(path)
 
 	var servicesConfig = ServicesConfig{}
+	var rulesConfig = []types.RuleConfig{}
 
 	if err != nil {
-		return nil, servicesConfig, err
+		return nil, servicesConfig, rulesConfig, err
 	}
 
 	// Parse the yaml into cfg. Then iterate through rules pushing to the provided parser
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		log.Println(err)
-		return nil, servicesConfig, err
+		return nil, servicesConfig, rulesConfig, err
 	}
 
 	servicesConfig = cfg.Services
+	rulesConfig = cfg.Rules
 
 	// Parse Services and ensure connections setup.
 	if servicesConfig.Nats.Enabled {
@@ -88,18 +85,18 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 		case "velocity":
 			handler, err := parseVelocityRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, err
+				return nil, servicesConfig, rulesConfig, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 		case "denylist":
 			handler, err := parseDenylistRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, err
+				return nil, servicesConfig, rulesConfig, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 		}
 
 	}
 
-	return handlers, servicesConfig, nil
+	return handlers, servicesConfig, rulesConfig, nil
 }

@@ -2,9 +2,11 @@ package util
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"rba/services"
+	"rba/types"
 )
 
 func GetStringField(m map[string]interface{}, key string) (string, error) {
@@ -63,4 +65,22 @@ func PublishMessage(results []RiskResult) {
 	if err != nil {
 		log.Printf("NATS publish error: %v", err)
 	}
+}
+
+func IsValidStrategy(val string) bool {
+	switch val {
+	case Strategies.Override, Strategies.Average:
+		return true
+	default:
+		return false
+	}
+}
+
+func GetRuleConfig(rules []types.RuleConfig, name string) (types.RuleConfig, error) {
+	for _, rule := range rules {
+		if rule.Name == name {
+			return rule, nil
+		}
+	}
+	return types.RuleConfig{}, errors.New("not found")
 }
