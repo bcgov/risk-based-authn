@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"rba/services"
@@ -117,8 +116,7 @@ func RemoveDenylistEntry(ctx context.Context, paramType string, entry string) (i
 			}
 		}
 		ipCmd := services.RedisClient.SRem(ctx, "denylist:"+paramType+"s", entry)
-		res, err := ipCmd.Result()
-		log.Print(res)
+		_, err := ipCmd.Result()
 		if err != nil {
 			return http.StatusInternalServerError, errors.New("failed to remove entry")
 		}
