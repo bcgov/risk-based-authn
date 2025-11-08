@@ -50,7 +50,7 @@ func parseVelocityRule(raw map[string]interface{}) (util.NamedRiskHandler, error
 	interval, ok := raw["intervalSeconds"].(int)
 
 	if redisErr := services.PingRedis(); redisErr != nil {
-		return util.NamedRiskHandler{}, errors.New("velocity: a valid redis connection is required for this rule. Check redis configuration.")
+		return util.NamedRiskHandler{}, errors.New("velocity: a valid redis connection is required for this rule. Check redis configuration")
 	}
 
 	if !ok {

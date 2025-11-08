@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"rba/rules"
-	"rba/types"
 	"rba/util"
 	"strconv"
 	"time"
@@ -15,18 +14,16 @@ type Server struct {
 	port         int
 	riskHandlers map[string][]util.NamedRiskHandler
 	services     rules.ServicesConfig
-	rules        []types.RuleConfig
 	authKeys     map[string][]byte
 }
 
-func NewServer(riskHandlers map[string][]util.NamedRiskHandler, services rules.ServicesConfig, rules []types.RuleConfig, authKeys map[string][]byte) *http.Server {
+func NewServer(riskHandlers map[string][]util.NamedRiskHandler, services rules.ServicesConfig, authKeys map[string][]byte) *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 
 	NewServer := &Server{
 		port:         port,
 		riskHandlers: riskHandlers,
 		services:     services,
-		rules:        rules,
 		authKeys:     authKeys,
 	}
 

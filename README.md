@@ -1,6 +1,14 @@
 # Risk Assessment Engine 🛡️
 
-This project is a robust risk assessment engine designed to evaluate and manage risks associated with various events. It provides a flexible and configurable framework for defining risk assessment rules, integrating with external services, and aggregating risk scores. The engine supports multiple risk assessment strategies and can be easily extended to incorporate new rules and services. It solves the problem of efficiently and accurately assessing risks in real-time, enabling proactive security measures and informed decision-making.
+This project is a robust risk assessment engine designed to evaluate and manage risks associated with various authentication events. It provides a flexible and configurable framework for defining risk assessment rules and aggregating risk scores. The engine supports multiple risk assessment strategies and can be easily extended to incorporate new rules and services. It solves the problem of efficiently and accurately assessing risks in real-time, enabling proactive security measures and informed decision-making.
+
+## Overview
+
+An authentication server can send http requests with event data to the server. The server will evaluate the configured ruleset to return a score associated with the event. The authentication server can decide on how to continue depending on the result.
+
+![alt text](tech-diagram.svg "Diagram")
+
+Depending on the configured ruleset, different supporting services can be included. For example, for rate-limiting logins from an IP address, a supporting redis service is required.
 
 ## 🚀 Key Features
 
@@ -127,9 +135,6 @@ Contributions are welcome! Please follow these steps:
 ## 💖 Thanks
 
 Thank you for checking out this project! We hope it's helpful for your risk assessment needs.
-
-This README is written by [readme.ai](https://readme-generator-phi.vercel.app/), the AI-powered README generator.
-
 
 ## Generating sig
 

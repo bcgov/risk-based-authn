@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"rba/internal/server/ruleRouter"
 	"rba/util"
@@ -18,8 +17,6 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-
-	fmt.Printf("%+v\n", s.rules)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
@@ -39,7 +36,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		protected.Use(AuthMiddleware(s.authKeys))
 		protected.Post("/event", s.EventHandler)
 
-		protected.Mount("/configuration/rules/denylist", ruleRouter.DenyListRouter(s.rules))
+		protected.Mount("/configuration/rules/denylist", ruleRouter.DenyListRouter())
 	})
 
 	return r

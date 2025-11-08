@@ -73,7 +73,7 @@ func main() {
 		log.Println("No .env file found")
 	}
 
-	handlers, serviceConfig, rulesConfig, err := rules.LoadConfig("./rules.yaml")
+	handlers, serviceConfig, err := rules.LoadConfig("./rules.yaml")
 
 	if err != nil {
 		panic(err)
@@ -84,7 +84,7 @@ func main() {
 		log.Fatalf("failed to load secrets")
 	}
 
-	server := server.NewServer(handlers, serviceConfig, rulesConfig, authKeys)
+	server := server.NewServer(handlers, serviceConfig, authKeys)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

@@ -2,7 +2,7 @@ rules:
   - name: velocity
     intervalSeconds: 60
     limit: 10
-    strategy: override
+    strategy: average
     
   - name: denylist
     sourceList: redis
@@ -10,7 +10,7 @@ rules:
       - 1.2.3.4
     cidrs:
       - 192.168.1.0/24
-    strategy: average
+    strategy: override
 
 services:
   nats:

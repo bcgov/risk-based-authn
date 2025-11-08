@@ -6,37 +6,51 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"rba/services"
-	"rba/types"
 	"rba/util"
 
 	"github.com/redis/go-redis/v9"
 )
 
-/*
-	TODO: since all config changes are in this package, rule config should be kept here in mem instead of passed throughout the server.
-*/
+// Read-only configuration, should not be changed after initial parse. e.g. checking the sourceList to know to use redis.
+type denylistConfigT struct {
+	configured bool
+	sourceList string
+	ips        []string
+	cidrs      []string
+}
 
-func UpdateDenylistParam(rules []types.RuleConfig, ip string, paramType string, operation string) error {
+var denylistConfig = denylistConfigT{}
+
+func UpdateDenylistParam(ctx context.Context, ip string, paramType string, operation string) (int, error) {
 	if paramType != "ip" && paramType != "cidr" {
-		return errors.New("must provide cidr or ip for the param type")
+		return http.StatusBadRequest, errors.New("must provide cidr or ip for the param type")
 	}
 
 	if operation != "add" && operation != "remove" {
-		return errors.New("must provide add or remove for the operation")
+		return http.StatusBadRequest, errors.New("must provide add or remove for the operation")
 	}
 
-	denylistParams, parseErr := util.GetRuleConfig(rules, "denylist")
-	if parseErr != nil {
-		return errors.New("denylist not in configuration")
+	if !denylistConfig.configured {
+		return http.StatusBadRequest, errors.New("denylist is not configured")
 	}
 
-	sourceList, ok := denylistParams.Params["sourceList"]
-	if !ok {
-		return errors.New("denylist misconfigured")
-	}
+	if denylistConfig.sourceList == util.Services.Redis {
+		if paramType == "ip" {
+			targetIP := net.ParseIP(ip)
+			if targetIP == nil {
+				return http.StatusBadRequest, errors.New("invalid ip address")
+			}
+		}
 
-	if sourceList == util.Services.Redis {
+		if paramType == "cidr" {
+			_, _, err := net.ParseCIDR(ip)
+			if err != nil {
+				return http.StatusBadRequest, errors.New("invalid cidr")
+			}
+		}
+
 		ctx := context.TODO()
 		var ipCmd *redis.IntCmd
 		if operation == "add" {
@@ -46,56 +60,71 @@ func UpdateDenylistParam(rules []types.RuleConfig, ip string, paramType string, 
 		}
 		_, err := ipCmd.Result()
 		if err != nil {
-			return errors.New("failed to add param to redis")
+			return http.StatusInternalServerError, errors.New("failed to add param to redis")
 		}
-		return nil
+		return http.StatusOK, nil
 	} else {
-		return errors.New("no dynamic source configured")
+		return http.StatusBadRequest, errors.New("no dynamic source configured")
 	}
 }
 
-func GetDenylistParams(rules []types.RuleConfig, paramType string) ([]string, error) {
-	denylistParams, parseErr := util.GetRuleConfig(rules, "denylist")
-	if parseErr != nil {
-		return nil, errors.New("denylist not in configuration")
+func GetDenylistParams(ctx context.Context, paramType string) ([]string, int, error) {
+	if paramType != "ips" && paramType != "cidrs" {
+		return nil, http.StatusBadRequest, errors.New("must provide cidr or ip for the param type")
 	}
 
-	sourceList, ok := denylistParams.Params["sourceList"]
-	if !ok {
-		return nil, errors.New("denylist misconfigured")
+	if !denylistConfig.configured {
+		return nil, http.StatusBadRequest, errors.New("denylist is not configured")
 	}
 
-	if sourceList == util.Services.Redis {
+	if denylistConfig.sourceList == util.Services.Redis {
 		ctx := context.TODO()
 		ipCmd := services.RedisClient.SMembers(ctx, "denylist:"+paramType)
 		result, err := ipCmd.Result()
 		if err != nil {
-			return nil, errors.New("failed to add param to redis")
+			return nil, http.StatusInternalServerError, errors.New("failed to fetch list from redis")
 		}
-		return result, nil
+		return result, http.StatusOK, nil
 	} else {
-		list, ok := denylistParams.Params[paramType]
-		log.Print(list)
-		log.Printf("list type: %T\n", list)
+		if paramType == "ips" {
+			return denylistConfig.ips, http.StatusOK, nil
+		}
+		return denylistConfig.cidrs, http.StatusOK, nil
+	}
+}
 
-		if !ok {
-			// It is valid for only of of IP or CIDR to be configured, in which case it is an empty list
-			return []string{}, nil
-		}
-		// YAML is always parsed as []interface{} for lists. Need to type check and convert to []string
-		if rawList, ok := list.([]interface{}); ok {
-			result := make([]string, len(rawList))
-			for i, v := range rawList {
-				str, ok := v.(string)
-				if !ok {
-					return nil, fmt.Errorf("element %d in %s is not a string", i, paramType)
-				}
-				result[i] = str
+func RemoveDenylistEntry(ctx context.Context, paramType string, entry string) (int, error) {
+	if paramType != "ip" && paramType != "cidr" {
+		return http.StatusBadRequest, errors.New("must provide cidr or ip for the param type")
+	}
+
+	if !denylistConfig.configured {
+		return http.StatusBadRequest, errors.New("denylist is not configured")
+	}
+
+	if denylistConfig.sourceList == util.Services.Redis {
+		if paramType == "ip" {
+			targetIP := net.ParseIP(entry)
+			if targetIP == nil {
+				return http.StatusBadRequest, errors.New("invalid ip address")
 			}
-			return result, nil
-		} else {
-			return nil, errors.New("list is misconfigured")
 		}
+
+		if paramType == "cidr" {
+			_, _, err := net.ParseCIDR(entry)
+			if err != nil {
+				return http.StatusBadRequest, errors.New("invalid cidr")
+			}
+		}
+		ipCmd := services.RedisClient.SRem(ctx, "denylist:"+paramType+"s", entry)
+		res, err := ipCmd.Result()
+		log.Print(res)
+		if err != nil {
+			return http.StatusInternalServerError, errors.New("failed to remove entry")
+		}
+		return http.StatusOK, nil
+	} else {
+		return http.StatusBadRequest, errors.New("no dynamic source configured")
 	}
 }
 
@@ -121,11 +150,22 @@ func ipInCIDR(ipStr, cidrOrIPStr string) (bool, error) {
 func parseDenylistRule(raw map[string]interface{}) (util.NamedRiskHandler, error) {
 	ipsRaw, ipsExist := raw["ips"]
 	cidrsRaw, cidrsExist := raw["cidrs"]
-	sourceList, sourceListExists := raw["sourceList"]
+	sourceListRaw, sourceListExists := raw["sourceList"]
 
 	if !sourceListExists {
 		return util.NamedRiskHandler{}, errors.New("denylist: must provide source")
 	}
+
+	sourceList, ok := sourceListRaw.(string)
+	if !ok {
+		return util.NamedRiskHandler{}, errors.New("denylist: source list configuration must be a string")
+	}
+
+	if sourceList != "static" && sourceList != util.Services.Redis {
+		return util.NamedRiskHandler{}, errors.New("denylist: invalid source list")
+	}
+
+	denylistConfig.sourceList = sourceList
 
 	if sourceList == "static" && !ipsExist && !cidrsExist {
 		return util.NamedRiskHandler{}, errors.New("denylist: must provide a static ip list when source is static")
@@ -181,6 +221,11 @@ func parseDenylistRule(raw map[string]interface{}) (util.NamedRiskHandler, error
 			services.RedisClient.SAdd(ctx, "denylist:ips", ips)
 		}
 	}
+
+	// Once all parsers have passed, indicate the rule is properly configured
+	denylistConfig.configured = true
+	denylistConfig.cidrs = cidrs
+	denylistConfig.ips = ips
 
 	return util.NamedRiskHandler{
 		Name:     util.Rules.Denylist,

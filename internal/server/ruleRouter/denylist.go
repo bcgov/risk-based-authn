@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"rba/rules"
-	"rba/types"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -15,22 +15,22 @@ type DenylistGetResponse struct {
 	IPs   []string `json:"ips"`
 }
 
-func DenyListRouter(rulesConfig []types.RuleConfig) chi.Router {
+func DenyListRouter() chi.Router {
 
 	router := chi.NewRouter()
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		cidrs, err := rules.GetDenylistParams(rulesConfig, "cidrs")
+		cidrs, errCode, err := rules.GetDenylistParams(r.Context(), "cidrs")
 		if err != nil {
 			log.Print(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), errCode)
 			return
 		}
 
-		ips, err := rules.GetDenylistParams(rulesConfig, "ips")
+		ips, errCode, err := rules.GetDenylistParams(r.Context(), "ips")
 		if err != nil {
 			log.Print(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), errCode)
 			return
 		}
 
@@ -42,7 +42,7 @@ func DenyListRouter(rulesConfig []types.RuleConfig) chi.Router {
 		}
 
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
 	})
@@ -59,12 +59,30 @@ func DenyListRouter(rulesConfig []types.RuleConfig) chi.Router {
 			return
 		}
 
-		log.Print(payload)
 		defer r.Body.Close()
 
-		err := rules.UpdateDenylistParam(rulesConfig, payload.Value, payload.ParamType, "add")
+		errCode, err := rules.UpdateDenylistParam(r.Context(), payload.Value, payload.ParamType, "add")
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), errCode)
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+	})
+
+	router.Delete("/{paramType}/{entry}", func(w http.ResponseWriter, r *http.Request) {
+		rawEntry := chi.URLParam(r, "entry")
+		paramType := chi.URLParam(r, "paramType")
+
+		entry, err := url.PathUnescape(rawEntry)
+		if err != nil {
+			http.Error(w, "invalid encoding", http.StatusBadRequest)
+			return
+		}
+
+		errCode, err := rules.RemoveDenylistEntry(r.Context(), paramType, entry)
+		if err != nil {
+			http.Error(w, err.Error(), errCode)
 			return
 		}
 
