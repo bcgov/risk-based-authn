@@ -5,8 +5,10 @@ rules:
     strategy: average
     
   - name: denylist
+    sourceList: redis
     ips:
       - 1.2.3.4
+    cidrs:
       - 192.168.1.0/24
     strategy: override
 

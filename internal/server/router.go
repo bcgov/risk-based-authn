@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"rba/internal/server/ruleRouter"
 	"rba/util"
 	"sync"
 	"time"
@@ -30,7 +31,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 		w.Write([]byte("ok"))
 	})
 
-	r.Post("/event", s.EventHandler)
+	// Group for routes requiring auth
+	r.Group(func(protected chi.Router) {
+		protected.Use(AuthMiddleware(s.authKeys))
+		protected.Post("/event", s.EventHandler)
+
+		protected.Mount("/configuration/rules/denylist", ruleRouter.DenyListRouter())
+	})
+
 	return r
 }
 

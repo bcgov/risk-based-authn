@@ -4,14 +4,15 @@ import (
 	"log"
 	"os"
 	"rba/services"
+	"rba/types"
 	"rba/util"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Rules    []RuleConfig   `yaml:"rules"`
-	Services ServicesConfig `yaml:"services"`
+	Rules    []types.RuleConfig `yaml:"rules"`
+	Services ServicesConfig     `yaml:"services"`
 }
 
 type ServicesConfig struct {
@@ -28,12 +29,6 @@ type NatsConfig struct {
 type RedisConfig struct {
 	Host    string `yaml:"host"`
 	Enabled bool   `yaml:"enabled"`
-}
-
-type RuleConfig struct {
-	// Ah the missing piece. This yaml syntax is saying to push the name key into Name, which is how the case changes
-	Name   string                 `yaml:"name"`
-	Params map[string]interface{} `yaml:",inline"`
 }
 
 type Rule struct {
