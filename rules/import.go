@@ -92,8 +92,13 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 				return nil, servicesConfig, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
+		case "passwordSpray":
+    		handler, err := parsePasswordSprayRule(rawRule.Params)
+    		if err != nil {
+        		return nil, servicesConfig, err
+   			}
+    handlers["login_failure"] = append(handlers["login_failure"], handler)
 		}
-
 	}
 
 	return handlers, servicesConfig, nil
