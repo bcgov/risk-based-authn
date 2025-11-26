@@ -13,7 +13,7 @@ rules:
     strategy: override
 
   - name: passwordSpray
-    intervalSeconds: "5m"
+    intervalSeconds: "5"
     attemptsAllowed: 3
     distinctAccounts: 2
     strategy: override
