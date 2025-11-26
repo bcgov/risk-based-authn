@@ -16,6 +16,7 @@ rules:
     intervalSeconds: "5m"
     attemptsAllowed: 3
     distinctAccounts: 2
+    strategy: override
 
 services:
   nats:

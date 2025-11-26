@@ -59,6 +59,7 @@ func (s *Server) EventHandler(w http.ResponseWriter, r *http.Request) {
 	// If event name is invalid send a 400 since we don't know which risk modules to run
 	validEvents := map[string]bool{
 		"login": true,
+		"login_failure": true,
 	}
 
 	if !validEvents[req.Event] {
