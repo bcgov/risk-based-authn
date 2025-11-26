@@ -16,7 +16,7 @@ import (
 func TestMain(m *testing.M) {
     addr := os.Getenv("REDIS_ADDR")
     if addr == "" {
-        addr = "localhost:6379" // default if not provided
+        addr = "localhost:6379"
     }
 
     services.RedisClient = redis.NewClient(&redis.Options{
@@ -43,7 +43,7 @@ func TestParsePasswordSprayRule(t *testing.T) {
         "intervalSeconds":  10,
         "attemptsAllowed":  3,
         "distinctAccounts": 2,
-        "strategy":         util.Strategies.Override,
+        "strategy": util.Strategies.Override,
     }
 
     handler, err := parsePasswordSprayRule(raw)
@@ -62,19 +62,17 @@ func TestParsePasswordSprayRule(t *testing.T) {
 func TestEvaluatePasswordSprayRisk(t *testing.T) {
     ctx := context.Background()
     ip := "1.2.3.4"
-    key := fmt.Sprintf("passwordSpray:%s", ip)
+    interval := 2 * time.Second
+    attemptsAllowed := 3
+    distinctAccounts := 2
 
     // clear key before test
-    if err := services.RedisClient.Del(ctx, key).Err(); err != nil {
-        t.Fatalf("failed to clear redis key: %v", err)
+    if err := services.RedisClient.FlushDB(ctx).Err(); err != nil {
+        t.Fatalf("failed to flush redis: %v", err)
     }
 
-    interval := 2 * time.Second
-    attemptsAllowed := 2
-    distinctAccounts := 1
-
-    // First attempt should not exceed threshold
-    score, err := EvaluatePasswordSprayRisk(ctx, ip, interval, attemptsAllowed, distinctAccounts)
+    // First attempt on "alice" should not exceed threshold
+    score, err := EvaluatePasswordSprayRisk(ctx, ip, "alice", interval, attemptsAllowed, distinctAccounts)
     if err != nil {
         t.Fatalf("unexpected error: %v", err)
     }
@@ -82,12 +80,24 @@ func TestEvaluatePasswordSprayRisk(t *testing.T) {
         t.Errorf("expected score 0.0, got %v", score)
     }
 
-    // Second attempt should exceed threshold
-    score, err = EvaluatePasswordSprayRisk(ctx, ip, interval, attemptsAllowed, distinctAccounts)
-    if err != nil {
-        t.Fatalf("unexpected error: %v", err)
+    // Multiple attempts on the same account ("alice") should still count as 1 distinct account
+    for i := 0; i < 3; i++ {
+        _, _ = EvaluatePasswordSprayRisk(ctx, ip, "alice", interval, attemptsAllowed, distinctAccounts)
     }
+    score, _ = EvaluatePasswordSprayRisk(ctx, ip, "alice", interval, attemptsAllowed, distinctAccounts)
+    if score != 0.0 {
+        t.Errorf("expected score 0.0 for repeated alice attempts, got %v", score)
+    }
+
+    // Add a second distinct account ("bob") from the same IP
+    score, _ = EvaluatePasswordSprayRisk(ctx, ip, "bob", interval, attemptsAllowed, distinctAccounts)
+    if score != 0.0 {
+        t.Errorf("expected score 0.0 when alice+bob are within distinctAccounts threshold, got %v", score)
+    }
+
+    // Add a third distinct account ("charlie") from the same IP
+    score, _ = EvaluatePasswordSprayRisk(ctx, ip, "charlie", interval, attemptsAllowed, distinctAccounts)
     if score != 1.0 {
-        t.Errorf("expected score 1.0 after threshold exceeded, got %v", score)
+        t.Errorf("expected score 1.0 when alice+bob+charlie exceed distinctAccounts threshold, got %v", score)
     }
 }

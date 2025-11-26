@@ -12,10 +12,10 @@ rules:
       - 192.168.1.0/24
     strategy: override
 
-  - name: passwordspray
-    timeframe: "5m"
-    attempts_allowed: 3
-    distinct_accounts: 2
+  - name: passwordSpray
+    intervalSeconds: "5m"
+    attemptsAllowed: 3
+    distinctAccounts: 2
 
 services:
   nats:

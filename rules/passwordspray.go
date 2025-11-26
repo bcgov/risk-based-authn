@@ -8,39 +8,37 @@ import (
     "rba/util"
     "time"
 
-    "github.com/redis/go-redis/v9"
+   // "github.com/redis/go-redis/v9"
 )
 
 // EvaluatePasswordSprayRisk checks Redis for suspicious login failures
-func EvaluatePasswordSprayRisk(ctx context.Context, ip string, interval time.Duration, attemptsAllowed int, distinctAccounts int) (float64, error) {
-    now := time.Now().UnixMilli()
-    windowStart := float64(now - interval.Milliseconds())
-    key := fmt.Sprintf("passwordSpray:%s", ip)
+// Counts distinct accounts per IP, not repeated attempts on the same account.
+func EvaluatePasswordSprayRisk(
+    ctx context.Context,
+    ip string,
+    account string,
+    interval time.Duration,
+    attemptsAllowed int,   // kept for signature consistency, but not used in spray detection
+    distinctAccounts int,
+) (float64, error) {
 
-    // Remove old entries
-    if err := services.RedisClient.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("%f", windowStart)).Err(); err != nil {
+    // Track distinct accounts per IP using a Redis set
+    distinctKey := fmt.Sprintf("passwordSpray:distinct:%s", ip)
+    if err := services.RedisClient.SAdd(ctx, distinctKey, account).Err(); err != nil {
+        return 0, err
+    }
+    if err := services.RedisClient.Expire(ctx, distinctKey, interval).Err(); err != nil {
         return 0, err
     }
 
-    // Add login failure event
-    member := fmt.Sprintf("%d", now)
-    if err := services.RedisClient.ZAdd(ctx, key, redis.Z{
-        Score:  float64(now),
-        Member: member,
-    }).Err(); err != nil {
-        return 0, err
-    }
-
-    // Count current entries
-    count, err := services.RedisClient.ZCount(ctx, key, fmt.Sprintf("%f", windowStart), "+inf").Result()
+    // Fetch distinct account count
+    distinctCount, err := services.RedisClient.SCard(ctx, distinctKey).Result()
     if err != nil {
         return 0, err
     }
 
-    services.RedisClient.Expire(ctx, key, interval)
-
-    // Threshold check
-    if count >= int64(attemptsAllowed) && count >= int64(distinctAccounts) {
+    // Threshold check: only distinct accounts matter
+    if int(distinctCount) > distinctAccounts {
         return 1.0, nil
     }
     return 0.0, nil
@@ -89,7 +87,23 @@ func parsePasswordSprayRule(raw map[string]interface{}) (util.NamedRiskHandler, 
                 return result
             }
 
-            score, redisErr := EvaluatePasswordSprayRisk(ctx, ip, time.Duration(interval)*time.Second, attemptsAllowed, distinctAccounts)
+            account, err := util.GetStringField(args, "account")
+            if err != nil {
+                errText := "missing account"
+                result := base
+                result.Err = &errText
+                return result
+            }
+
+            score, redisErr := EvaluatePasswordSprayRisk(
+                ctx,
+                ip,
+                account,
+                time.Duration(interval)*time.Second,
+                attemptsAllowed,   // not used in spray detection
+                distinctAccounts,
+            )
+
             result := base
             result.Score = score
             if redisErr != nil {
