@@ -25,4 +25,4 @@ services:
     threshold: 0.1
   redis:
     enabled: true
-    host: localhost:6379
+    host: redis:6379

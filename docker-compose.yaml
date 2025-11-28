@@ -16,6 +16,18 @@ services:
       - "4222:4222"   # Client connections
       - "8222:8222"   # Monitoring UI
     command: ["-DV"]  # Debug & verbose logs
+    depends_on:
+    - redis
+  rba:
+    image: risk-based-authn
+    container_name: rba
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./.env
+    depends_on:
+      - redis
+      - nats
 
 volumes:
   redis-data:
