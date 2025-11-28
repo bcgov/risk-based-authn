@@ -52,5 +52,5 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: terraform plan -no-color
-        working-directory: ./docker/otp-provider/terraform-v2
+        working-directory: ./terraform
         continue-on-error: true
