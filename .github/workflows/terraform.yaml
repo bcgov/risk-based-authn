@@ -1,0 +1,54 @@
+name: Deploy RBA in AWS
+
+on:
+  push:
+    branches:
+      - 'tf-setup'
+
+jobs:
+  build-and-push-image:
+    permissions: write-all
+    runs-on: ubuntu-24.04
+
+    steps:
+      #TODO: Add prod tf when ready
+      - name: Set global environment variables
+        run: |
+          cat >> $GITHUB_ENV <<EOF
+          TF_STATE_BUCKET_KEY=rba.tfstate
+          TF_STATE_BUCKET_REGION=ca-central-1
+          TF_STATE_BUCKET_NAME=risk-based-authn-tf-sandbox
+          EOF
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS Sandbox Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.SANDBOX_SSO_AWS_GH_ACTIONS_DEPLOYER }}
+          aws-region: ca-central-1
+
+      - name: Terraform Variables
+        run: |
+          cat >"config.tf" <<EOF
+          terraform {
+            backend "s3" {
+              bucket         = "${{ env.TF_STATE_BUCKET_NAME }}"
+              key            = "${{ env.TF_STATE_BUCKET_KEY }}"
+              region         = "${{ env.TF_STATE_BUCKET_REGION }}"
+              use_lockfile   = true
+            }
+          }
+          EOF
+        working-directory: ./terraform
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -upgrade
+        working-directory: ./terraform
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color
+        working-directory: ./docker/otp-provider/terraform-v2
+        continue-on-error: true
