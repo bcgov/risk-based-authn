@@ -108,6 +108,7 @@ The server will process the event, evaluate the risk, and return a response with
 │   ├── denylist.go     # Implements the denylist risk rule
 │   ├── import.go       # Loads and parses risk rule configurations
 │   ├── velocity.go     # Implements the velocity risk rule
+│   ├── velocity.go     # Implements the velocity risk rule
 ├── services
 │   ├── natsClient.go   # Manages the NATS client connection
 │   ├── redisClient.go  # Manages the Redis client connection
@@ -120,6 +121,24 @@ The server will process the event, evaluate the risk, and return a response with
 ├── go.sum              # Go module checksums
 └── README.md           # This file
 ```
+
+## Rules
+
+### Velocity
+
+Measures the number of logins over a timeinterval from the same IP address, and fails if over the threshold.
+
+Settings:
+- **intervalSeconds**: The time interval in seconds to watch for logins
+- **limit**: The maximum number of allowed attempts over the interval. An amount greater than this will fail.
+
+### Horizontal Brute Force
+
+Measures failed authentication attempts across different accounts from the same IP address.
+
+Settings:
+- **intervalSeconds**: The time interval in seconds to watch for failed attempts
+- **distinctAccounts**: The maximum number of accounts for the IP to fail to authenticate to over the interval. An amount greater than this will fail.
 
 
 ## 🤝 Contributing

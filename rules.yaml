@@ -14,7 +14,7 @@ rules:
 
   - name: horizontalBruteForce
     intervalSeconds: 5
-    distinctAccounts: 5
+    distinctAccounts: 2
     strategy: override
 
 services:
