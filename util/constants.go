@@ -11,15 +11,15 @@ var Services = serviceConstants{
 }
 
 type rules struct {
-	Denylist string
-	Velocity string
-	PasswordSpray string
+	Denylist             string
+	Velocity             string
+	HorizontalBruteForce string
 }
 
 var Rules = rules{
-	Denylist: "denylist",
-	Velocity: "velocity",
-	PasswordSpray: "passwordSpray",
+	Denylist:             "denylist",
+	Velocity:             "velocity",
+	HorizontalBruteForce: "horizontalBruteForce",
 }
 
 type strategies struct {
