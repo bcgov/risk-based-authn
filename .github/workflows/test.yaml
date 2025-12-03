@@ -8,6 +8,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
 
     steps:
     - name: Checkout code
@@ -23,3 +28,5 @@ jobs:
 
     - name: Run tests
       run: go test ./... -v
+      env:
+        REDIS_ADDR: localhost:6379
