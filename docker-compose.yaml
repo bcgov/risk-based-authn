@@ -1,6 +1,21 @@
 version: '3.8'
-
+ 
 services:
+  rba:
+    depends_on:
+      - redis
+    image: ghcr.io/bcgov/risk-based-authn/risk-based-authn:latest
+    environment:
+      PORT: 8080
+      API_KEY_CLIENT_1: <replace me>
+      API_SECRET_CLIENT_1: <replace me>
+      API_KEY_CLIENT_2: <replace me>
+      API_SECRET_CLIENT_2: <replace me>
+      ALLOWED_SKEW_MINUTES: 0
+    volumes:
+      - ./rules.yaml:/app/rules.yaml
+    ports:
+      - 8080:8080
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -13,10 +28,9 @@ services:
     image: nats:latest
     container_name: nats-server
     ports:
-      - "4222:4222"   # Client connections
-      - "8222:8222"   # Monitoring UI
-    command: ["-DV"]  # Debug & verbose logs
-
+      - "4222:4222"   
+      - "8222:8222"   
+    command: ["-DV"]  
+ 
 volumes:
   redis-data:
-
