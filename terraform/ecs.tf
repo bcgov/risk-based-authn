@@ -1,4 +1,3 @@
-
 ##############################################
 # ECS Cluster
 ##############################################
@@ -19,7 +18,7 @@ resource "aws_ecs_task_definition" "rba" {
   container_definitions = jsonencode([
     {
       name      = "rba"
-      image     = "your-rba-image:latest"
+      image     = "ghcr.io/bcgov/risk-based-authn/risk-based-authn:latest"
       essential = true
       portMappings = [
         {
