@@ -5,7 +5,6 @@ on:
     # Currently only deploying to sandbox during POC
     branches:
       - dev
-      - tf-setup
 
 jobs:
   build:
