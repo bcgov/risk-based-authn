@@ -66,7 +66,10 @@ If you use [asdf](https://asdf-vm.com/) there is a tool-versions file with the c
 2. Run services:
 `docker-compose up`
 
-3. Live reload the application:
+3. Check config:
+When running locally, connection host for services (e.g. redis) will be "localhost" in [rules.yaml](rules.yaml)
+
+4. Live reload the application:
 `make watch`
 
 
