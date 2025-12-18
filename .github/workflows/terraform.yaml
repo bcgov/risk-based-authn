@@ -5,6 +5,7 @@ on:
     #TODO: Only deploying to sandbox (dev branch) during POC. When ready for prod can add main branch and just need to update the github actions production env secrets 
     branches:
       - 'dev'
+      - 'tf-setup'
 
 jobs:
   build-and-push-image:
@@ -36,7 +37,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.SANDBOX_SSO_AWS_GH_ACTIONS_DEPLOYER }}
+          role-to-assume: ${{ secrets.AWS_DEPLOYER_ROLE_ARN }}
           aws-region: ca-central-1
 
       - name: Configure terraform backend
@@ -64,6 +65,6 @@ jobs:
         working-directory: ./terraform
         continue-on-error: false
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: ./terraform
+      # - name: Terraform Apply
+      #   run: terraform apply -auto-approve
+      #   working-directory: ./terraform
