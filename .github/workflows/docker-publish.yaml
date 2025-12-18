@@ -2,8 +2,10 @@ name: Build and Push Docker Image
 
 on:
   push:
+    # Currently only deploying to sandbox during POC
     branches:
       - dev
+      - tf-setup
 
 jobs:
   build:
@@ -33,4 +35,67 @@ jobs:
         run: |
           IMAGE_NAME=ghcr.io/bcgov/risk-based-authn/risk-based-authn:latest
           docker push $IMAGE_NAME
+
+  terraform-deploy:
+    permissions: write-all
+    runs-on: ubuntu-24.04
+
+    needs: build
+
+    environment: ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
+    
+    steps:
+      - name: debug
+        run: echo ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Set global environment variables
+        run: |
+          cat >> $GITHUB_ENV <<EOF
+          TF_STATE_BUCKET_KEY=rba.tfstate
+          TF_STATE_BUCKET_REGION=ca-central-1
+          TF_VAR_api_key_client=${{secrets.API_KEY}}
+          TF_VAR_api_key_secret=${{secrets.API_SECRET}}
+          TF_VAR_otp_image_tag=${{ env.IMAGE_TAG || 'latest' }}
+          TF_STATE_BUCKET_NAME=${{env.TF_STATE_BUCKET_NAME}}
+          TF_VAR_subnet_a=${{vars.TF_VAR_SUBNET_A}}
+          TF_VAR_subnet_b=${{vars.TF_VAR_SUBNET_B}}
+          EOF
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOYER_ROLE_ARN }}
+          aws-region: ca-central-1
+
+      - name: Configure terraform backend
+        run: |
+          cat >"config.tf" <<EOF
+          terraform {
+            backend "s3" {
+              bucket         = "${{ vars.TF_STATE_BUCKET_NAME }}"
+              key            = "${{ vars.TF_STATE_BUCKET_KEY }}"
+              region         = "${{ vars.TF_STATE_BUCKET_REGION }}"
+              use_lockfile   = true
+            }
+          }
+          EOF
+        working-directory: ./terraform
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -upgrade
+        working-directory: ./terraform
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color
+        working-directory: ./terraform
+        continue-on-error: false
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
 
