@@ -45,9 +45,9 @@ jobs:
           cat >"config.tf" <<EOF
           terraform {
             backend "s3" {
-              bucket         = "${{ env.TF_STATE_BUCKET_NAME }}"
-              key            = "${{ env.TF_STATE_BUCKET_KEY }}"
-              region         = "${{ env.TF_STATE_BUCKET_REGION }}"
+              bucket         = "${{ vars.TF_STATE_BUCKET_NAME }}"
+              key            = "${{ vars.TF_STATE_BUCKET_KEY }}"
+              region         = "${{ vars.TF_STATE_BUCKET_REGION }}"
               use_lockfile   = true
             }
           }
