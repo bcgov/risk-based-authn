@@ -37,7 +37,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOYER_ROLE_ARN }}
+          role-to-assume: ${{ secrets.SANDBOX_SSO_AWS_GH_ACTIONS_DEPLOYER }}
           aws-region: ca-central-1
 
       - name: Configure terraform backend
