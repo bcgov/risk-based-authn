@@ -4,8 +4,8 @@ on:
   push:
     #TODO: Only deploying to sandbox (dev branch) during POC. When ready for prod can add main branch and just need to update the github actions production env secrets 
     branches:
-      - 'tf-setup'
       - 'dev'
+      - 'tf-setup'
 
 jobs:
   build-and-push-image:
@@ -45,7 +45,7 @@ jobs:
           cat >"config.tf" <<EOF
           terraform {
             backend "s3" {
-              bucket         = "${{ vars.TF_STATE_BUCKET_NAME }}"
+              bucket         = "${{ env.TF_STATE_BUCKET_NAME }}"
               key            = "${{ vars.TF_STATE_BUCKET_KEY }}"
               region         = "${{ vars.TF_STATE_BUCKET_REGION }}"
               use_lockfile   = true
@@ -63,4 +63,8 @@ jobs:
         id: plan
         run: terraform plan -no-color
         working-directory: ./terraform
-        continue-on-error: true
+        continue-on-error: false
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
