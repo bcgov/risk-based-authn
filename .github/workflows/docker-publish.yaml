@@ -38,7 +38,7 @@ jobs:
 
   terraform-deploy:
     permissions:  
-      id_token: write
+      id-token: write
 
     runs-on: ubuntu-24.04
 
