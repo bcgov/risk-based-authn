@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-24.04
 
     environment: ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
+
+    steps:
+      run: echo ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
     
     steps:
       - name: Checkout repository
@@ -25,9 +28,9 @@ jobs:
           TF_VAR_api_key_client=${{secrets.API_KEY}}
           TF_VAR_api_key_secret=${{secrets.API_SECRET}}
           TF_VAR_otp_image_tag=${{ env.IMAGE_TAG }}
-          TF_STATE_BUCKET_NAME=risk-based-authn-tf-sandbox
-          TF_VAR_subnet_a=Dev-App-A
-          TF_VAR_subnet_b=Dev-App-B
+          TF_STATE_BUCKET_NAME=${{env.TF_STATE_BUCKET_NAME}}
+          TF_VAR_subnet_a=${{env.TF_VAR_SUBNET_A}}
+          TF_VAR_subnet_b=${{env.TF_VAR_SUBNET_B}}
           EOF
 
       - uses: hashicorp/setup-terraform@v3
