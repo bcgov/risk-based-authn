@@ -1,11 +1,10 @@
-name: Build and Push Docker Image
+name: Deploy RBA
 
 on:
   push:
     # Currently only deploying to sandbox during POC
     branches:
       - dev
-      - tf-setup
 
 jobs:
   build:
