@@ -19,3 +19,8 @@ variable "api_key_secret" {
   type = string
   description = "The name of the secret to use for hmac authentication"
 }
+
+variable "image_tag" {
+  type    = string
+  default = "latest"
+}

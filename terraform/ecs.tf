@@ -20,7 +20,7 @@ resource "aws_ecs_task_definition" "rba" {
   container_definitions = jsonencode([
     {
       name      = "rba"
-      image     = "ghcr.io/bcgov/risk-based-authn/risk-based-authn:latest"
+      image     = "ghcr.io/bcgov/risk-based-authn/risk-based-authn:${var.image_tag}"
       essential = true
       portMappings = [
         {
