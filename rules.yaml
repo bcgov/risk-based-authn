@@ -13,7 +13,7 @@ rules:
     strategy: override
  
   - name: horizontalBruteForce
-    intervalSeconds: 5
+    intervalSeconds: 300
     distinctAccounts: 2
     strategy: override
  

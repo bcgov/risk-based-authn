@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - 'tf-setup'
+      - 'dev'
+      - 'main'
 
 jobs:
   build-and-push-image:
     permissions: write-all
     runs-on: ubuntu-24.04
 
+    environment: ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -19,8 +23,18 @@ jobs:
           cat >> $GITHUB_ENV <<EOF
           TF_STATE_BUCKET_KEY=rba.tfstate
           TF_STATE_BUCKET_REGION=ca-central-1
-          TF_STATE_BUCKET_NAME=risk-based-authn-tf-sandbox
+          TF_VAR_api_key_client=${{secrets.API_KEY}}
+          TF_VAR_api_key_secret=${{secrets.API_SECRET}}
+          TF_VAR_otp_image_tag=${{ env.IMAGE_TAG }}
           EOF
+      
+      - name: Set Sandbox environment variables
+        if: github.event.inputs.environment == 'Sandbox'
+        run: |
+          cat >> $GITHUB_ENV <<EOF
+          TF_STATE_BUCKET_NAME=risk-based-authn-tf-sandbox
+          TF_VAR_subnet_a=Dev-App-A
+          TF_VAR_subnet_b=Dev-App-B
 
       - uses: hashicorp/setup-terraform@v3
 

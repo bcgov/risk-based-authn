@@ -74,6 +74,7 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 		}
 		_, err := services.ConnectRedis(servicesConfig.Redis.Host)
 		if err != nil {
+			log.Println(err)
 			panic("Could not connect to redis. Please check configuration")
 		}
 	}

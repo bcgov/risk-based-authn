@@ -21,6 +21,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
+        # TODO: Update tagging once production ready
         run: |
           IMAGE_NAME=ghcr.io/bcgov/risk-based-authn/risk-based-authn:latest
           docker build -t $IMAGE_NAME .
