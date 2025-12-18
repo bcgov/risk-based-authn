@@ -25,25 +25,20 @@ jobs:
           TF_VAR_api_key_client=${{secrets.API_KEY}}
           TF_VAR_api_key_secret=${{secrets.API_SECRET}}
           TF_VAR_otp_image_tag=${{ env.IMAGE_TAG }}
-          EOF
-      
-      - name: Set Sandbox environment variables
-        if: github.event.inputs.environment == 'Sandbox'
-        run: |
-          cat >> $GITHUB_ENV <<EOF
           TF_STATE_BUCKET_NAME=risk-based-authn-tf-sandbox
           TF_VAR_subnet_a=Dev-App-A
           TF_VAR_subnet_b=Dev-App-B
+          EOF
 
       - uses: hashicorp/setup-terraform@v3
 
-      - name: Configure AWS Sandbox Credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOYER_ROLE_ARN }}
           aws-region: ca-central-1
 
-      - name: Terraform Variables
+      - name: Configure terraform backend
         run: |
           cat >"config.tf" <<EOF
           terraform {
