@@ -5,6 +5,7 @@ on:
     # Currently only deploying to sandbox during POC
     branches:
       - dev
+      - tf-setup
 
 jobs:
   build:
@@ -36,7 +37,9 @@ jobs:
           docker push $IMAGE_NAME
 
   terraform-deploy:
-    permissions: write-all
+    permissions:  
+      id_token: write
+
     runs-on: ubuntu-24.04
 
     needs: build
