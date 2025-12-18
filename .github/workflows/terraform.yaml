@@ -13,11 +13,10 @@ jobs:
     runs-on: ubuntu-24.04
 
     environment: ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
-
-    steps:
-      run: echo ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
     
     steps:
+      - name: debug
+        run: echo ${{ github.ref_name == 'main' && 'Production' || 'Sandbox' }}
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Set global environment variables
