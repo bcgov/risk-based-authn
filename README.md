@@ -66,7 +66,10 @@ If you use [asdf](https://asdf-vm.com/) there is a tool-versions file with the c
 2. Run services:
 `docker-compose up`
 
-3. Live reload the application:
+3. Check config:
+When running locally, connection host for services (e.g. redis) will be "localhost" in [rules.yaml](rules.yaml)
+
+4. Live reload the application:
 `make watch`
 
 
@@ -159,10 +162,8 @@ Thank you for checking out this project! We hope it's helpful for your risk asse
 
 The server authentication uses HMAC. You can configure the secrets and keys in the environment file, for example:
 
-API_KEY_CLIENT_1=abcd1234
-API_SECRET_CLIENT_1=supersecret1
-API_KEY_CLIENT_2=wxyz5678
-API_SECRET_CLIENT_2=supersecret2
+API_KEY=abcd1234
+API_SECRET=supersecret1
 ALLOWED_SKEW_MINUTES=0
 
 Multiple secrets are provided for different clients and/or secret rotation. As long as there is a matching key and secret, e.g. API_KEY_X, API_SECRET_X it will be used.

@@ -54,14 +54,12 @@ func loadSecrets() (map[string][]byte, error) {
 	// Build a map of API keys -> secrets
 	secrets := map[string][]byte{}
 
-	for _, id := range []string{"CLIENT_1", "CLIENT_2"} {
-		key := os.Getenv(fmt.Sprintf("API_KEY_%s", id))
-		secret := os.Getenv(fmt.Sprintf("API_SECRET_%s", id))
-		if key != "" && secret != "" {
-			secrets[key] = []byte(secret)
-		} else {
-			return nil, errors.New("could not load expected api keys")
-		}
+	key := os.Getenv("API_KEY")
+	secret := os.Getenv("API_SECRET")
+	if key != "" && secret != "" {
+		secrets[key] = []byte(secret)
+	} else {
+		return nil, errors.New("could not load expected api keys")
 	}
 
 	return secrets, nil
