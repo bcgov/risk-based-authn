@@ -24,6 +24,7 @@ resource "aws_ecs_task_definition" "rba" {
       essential = true
       portMappings = [
         {
+          name          = "rba"
           containerPort = 8080
           protocol      = "tcp"
         }
@@ -36,6 +37,10 @@ resource "aws_ecs_task_definition" "rba" {
         {
           name  = "API_SECRET"
           value = var.api_key_secret
+        },
+        {
+          name  = "PORT"
+          value = "8080"
         }
       ]
       logConfiguration = {
@@ -64,6 +69,14 @@ resource "aws_ecs_service" "rba" {
   service_connect_configuration {
     enabled = true
     namespace = aws_service_discovery_private_dns_namespace.this.arn
+
+    service {
+      port_name = "rba"
+      client_alias {
+        dns_name = "rba"
+        port     = 8080
+      }
+    }
   }
 
   network_configuration {
