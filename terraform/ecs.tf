@@ -31,12 +31,12 @@ resource "aws_ecs_task_definition" "rba" {
       ]
       environment = [
         {
-          name  = "API_KEY"
-          value = var.api_key_client 
+          name  = "JWKS_URL"
+          value = var.jwks_url
         },
         {
-          name  = "API_SECRET"
-          value = var.api_key_secret
+          name  = "JWT_AUD"
+          value = var.jwt_aud
         },
         {
           name  = "PORT"

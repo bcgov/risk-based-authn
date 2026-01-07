@@ -25,3 +25,7 @@ services:
   redis:
     enabled: true
     host: redis:6379
+
+auth: 
+  enabled: true
+  method: jwt

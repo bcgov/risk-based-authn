@@ -160,13 +160,15 @@ Thank you for checking out this project! We hope it's helpful for your risk asse
 
 ## Generating sig
 
-The server authentication uses HMAC. You can configure the secrets and keys in the environment file, for example:
+The server can be configured to use either HMAC or JWTs for authentication. Configure this in rules.yaml, e.g:
 
-API_KEY=abcd1234
-API_SECRET=supersecret1
-ALLOWED_SKEW_MINUTES=0
+```yaml
+auth: 
+  enabled: true
+  method: jwt
+```
 
-Multiple secrets are provided for different clients and/or secret rotation. As long as there is a matching key and secret, e.g. API_KEY_X, API_SECRET_X it will be used.
+If using HMAC, the server should be provided an env variable in the format `<API_KEY_ID>=<API_SECRET>`. e.g. `KEY_1=secret1`. You can use this format to have multiple keys on the same server.
 
 If ALLOWED_SKEW_MINUTES is set to 0 it will be ignored (useful for local development). You can use the function below to generate a signature for testing:
 
@@ -186,3 +188,5 @@ func print() {
 	fmt.Println("X-Signature:", signature)
 }
 ```
+
+If using JWTs for auth, you should provide `JWKS_URL` and `JWT_AUD` environment variables.

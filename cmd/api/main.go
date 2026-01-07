@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -42,47 +40,19 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	done <- true
 }
 
-/*
-Loads authentication secrets from environment variables into a map
-*/
-func loadSecrets() (map[string][]byte, error) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found, skipping...")
-	}
-
-	// Build a map of API keys -> secrets
-	secrets := map[string][]byte{}
-
-	key := os.Getenv("API_KEY")
-	secret := os.Getenv("API_SECRET")
-	if key != "" && secret != "" {
-		secrets[key] = []byte(secret)
-	} else {
-		return nil, errors.New("could not load expected api keys")
-	}
-
-	return secrets, nil
-}
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("No .env file found")
 	}
 
-	handlers, serviceConfig, err := rules.LoadConfig("./rules.yaml")
+	handlers, serviceConfig, authConfig, err := rules.LoadConfig("./rules.yaml")
 
 	if err != nil {
 		panic(err)
 	}
 
-	authKeys, err := loadSecrets()
-	if err != nil {
-		log.Fatalf("failed to load secrets")
-	}
-
-	server := server.NewServer(handlers, serviceConfig, authKeys)
+	server := server.NewServer(handlers, serviceConfig, authConfig)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

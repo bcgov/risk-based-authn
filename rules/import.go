@@ -13,6 +13,12 @@ import (
 type Config struct {
 	Rules    []types.RuleConfig `yaml:"rules"`
 	Services ServicesConfig     `yaml:"services"`
+	Auth     AuthConfig         `yaml:"auth"`
+}
+
+type AuthConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Method  string `yaml:"method"`
 }
 
 type ServicesConfig struct {
@@ -35,23 +41,31 @@ type Rule struct {
 	Name string
 }
 
-func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, error) {
+func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, AuthConfig, error) {
 	var handlers = make(map[string][]util.NamedRiskHandler)
 	data, err := os.ReadFile(path)
 
 	var servicesConfig = ServicesConfig{}
+	var authConfig = AuthConfig{}
 
 	if err != nil {
-		return nil, servicesConfig, err
+		return nil, servicesConfig, authConfig, err
 	}
 
 	// Parse the yaml into cfg. Then iterate through rules pushing to the provided parser
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		log.Println(err)
-		return nil, servicesConfig, err
+		return nil, servicesConfig, authConfig, err
 	}
 
+	if cfg.Auth.Enabled {
+		if cfg.Auth.Method != "hmac" && cfg.Auth.Method != "jwt" {
+			panic("auth must be either hmac or jwt")
+		}
+	}
+
+	authConfig = cfg.Auth
 	servicesConfig = cfg.Services
 
 	// Parse Services and ensure connections setup.
@@ -84,23 +98,23 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 		case "velocity":
 			handler, err := parseVelocityRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, err
+				return nil, servicesConfig, authConfig, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 		case "denylist":
 			handler, err := parseDenylistRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, err
+				return nil, servicesConfig, authConfig, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 		case "horizontalBruteForce":
 			handler, err := parseHorizontalBruteForceRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, err
+				return nil, servicesConfig, authConfig, err
 			}
 			handlers["login_failure"] = append(handlers["login_failure"], handler)
 		}
 	}
 
-	return handlers, servicesConfig, nil
+	return handlers, servicesConfig, authConfig, nil
 }

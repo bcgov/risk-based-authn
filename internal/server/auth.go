@@ -4,11 +4,48 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"log"
 	"net/http"
 	"os"
+	"rba/rules"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/MicahParks/keyfunc/v3"
+	"github.com/golang-jwt/jwt/v5"
 )
+
+func validateJWT(rawToken string) bool {
+	jwksURL := os.Getenv("JWKS_URL")
+	expectedAud := os.Getenv("JWT_AUD")
+
+	jwks, err := keyfunc.NewDefault([]string{jwksURL})
+	if err != nil {
+		log.Printf("Failed to create JWK Set from resource at the given URL.\nError: %s", err)
+		return false
+	}
+
+	// Parse the JWT.
+	token, err := jwt.Parse(rawToken, jwks.Keyfunc)
+	if err != nil {
+		log.Printf("Failed to parse the JWT.\nError: %s", err)
+		return false
+	}
+
+	aud, err := token.Claims.GetAudience()
+
+	if err != nil || !slices.Contains(aud, expectedAud) {
+		return false
+	}
+
+	if !token.Valid {
+		return false
+	}
+
+	return true
+}
 
 func parseSkew() time.Duration {
 	defaultSkew := 5 * time.Minute
@@ -25,7 +62,7 @@ func parseSkew() time.Duration {
 	return time.Duration(minutes) * time.Minute
 }
 
-func verifyHMAC(r *http.Request, secret []byte) bool {
+func verifyHMAC(r *http.Request) bool {
 	sig := r.Header.Get("X-Signature")
 	ts := r.Header.Get("X-Timestamp")
 
@@ -42,8 +79,11 @@ func verifyHMAC(r *http.Request, secret []byte) bool {
 		return false // stale or future request
 	}
 
+	clientKey := r.Header.Get("X-Key-ID")
+	clientSecret := os.Getenv(clientKey)
+
 	message := ts // or ts + body, depending on your scheme
-	mac := hmac.New(sha256.New, secret)
+	mac := hmac.New(sha256.New, []byte(clientSecret))
 	mac.Write([]byte(message))
 	expectedSig := hex.EncodeToString(mac.Sum(nil))
 
@@ -51,21 +91,36 @@ func verifyHMAC(r *http.Request, secret []byte) bool {
 }
 
 /*
-Middleware factory is used to pass in the secret auth keys
+Middleware factory is used to pass in config
 */
-func AuthMiddleware(secrets map[string][]byte) func(http.Handler) http.Handler {
+func AuthMiddleware(authCfg rules.AuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			keyID := r.Header.Get("X-Key-ID")
-			secret, ok := secrets[keyID]
-			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
-				return
+			if authCfg.Enabled {
+
+				if authCfg.Method == "jwt" {
+					authHeader := r.Header.Get("Authorization")
+					parts := strings.Split(authHeader, " ")
+
+					if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+						http.Error(w, "forbidden", http.StatusForbidden)
+						return
+					}
+
+					if !validateJWT(parts[1]) {
+						http.Error(w, "forbidden", http.StatusForbidden)
+						return
+					}
+				}
+
+				if authCfg.Method == "hmac" {
+					if !verifyHMAC(r) {
+						http.Error(w, "forbidden", http.StatusForbidden)
+						return
+					}
+				}
 			}
-			if !verifyHMAC(r, secret) {
-				http.Error(w, "forbidden", http.StatusForbidden)
-				return
-			}
+
 			next.ServeHTTP(w, r)
 		})
 	}
