@@ -10,14 +10,14 @@ variable "subnet_b" {
   default     = "Dev-App-B"
 }
 
-variable "api_key_client" {
+variable "jwt_aud" {
   type = string
-  description = "The name of the client to use for hmac authentication"
+  description = "The expected audience for service account"
 }
 
-variable "api_key_secret" {
+variable "jwks_url" {
   type = string
-  description = "The name of the secret to use for hmac authentication"
+  description = "The jwks url for the auth server"
 }
 
 variable "image_tag" {

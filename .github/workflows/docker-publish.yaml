@@ -55,8 +55,8 @@ jobs:
           cat >> $GITHUB_ENV <<EOF
           TF_STATE_BUCKET_KEY=rba.tfstate
           TF_STATE_BUCKET_REGION=ca-central-1
-          TF_VAR_api_key_client=${{secrets.API_KEY}}
-          TF_VAR_api_key_secret=${{secrets.API_SECRET}}
+          TF_VAR_jwks_url=${{vars.JWKS_URL}}
+          TF_VAR_jwt_aud=${{secrets.JWT_AUD}}
           TF_VAR_otp_image_tag=${{ env.IMAGE_TAG || 'latest' }}
           TF_STATE_BUCKET_NAME=${{env.TF_STATE_BUCKET_NAME}}
           TF_VAR_subnet_a=${{vars.TF_VAR_SUBNET_A}}

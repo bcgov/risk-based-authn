@@ -33,7 +33,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// Group for routes requiring auth
 	r.Group(func(protected chi.Router) {
-		protected.Use(AuthMiddleware(s.authKeys))
+		protected.Use(AuthMiddleware(s.authConfig))
 		protected.Post("/event", s.EventHandler)
 
 		protected.Mount("/configuration/rules/denylist", ruleRouter.DenyListRouter())
@@ -58,7 +58,7 @@ func (s *Server) EventHandler(w http.ResponseWriter, r *http.Request) {
 
 	// If event name is invalid send a 400 since we don't know which risk modules to run
 	validEvents := map[string]bool{
-		"login": true,
+		"login":         true,
 		"login_failure": true,
 	}
 
