@@ -34,4 +34,4 @@ services:
 
 auth:
   enabled: true
-  method: hmac
+  method: jwt
