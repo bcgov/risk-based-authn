@@ -113,6 +113,12 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 				return nil, servicesConfig, authConfig, err
 			}
 			handlers["login_failure"] = append(handlers["login_failure"], handler)
+		case "rateLimitFailedLogins":
+			handler, err := parseRateLimitFailedLoginsRule(rawRule.Params)
+			if err != nil {
+				return nil, servicesConfig, authConfig, err
+			}
+			handlers["login_failure"] = append(handlers["login_failure"], handler)
 		}
 	}
 

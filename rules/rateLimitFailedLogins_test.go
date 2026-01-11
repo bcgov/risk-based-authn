@@ -1,0 +1,59 @@
+package rules
+
+import (
+	"context"
+	"rba/services"
+	"rba/util"
+	"testing"
+	"time"
+)
+
+func TestRateLimitFailedLoginsRule(t *testing.T) {
+	raw := map[string]interface{}{
+		"rollingWindowSeconds": 60,
+		"threshold":            5,
+		"strategy":             util.Strategies.Override,
+	}
+
+	handler, err := parseRateLimitFailedLoginsRule(raw)
+	if err != nil {
+		t.Fatalf("unexpected error parsing rule: %v", err)
+	}
+
+	if handler.Name != util.Rules.RateLimitFailedLogins {
+		t.Errorf("expected rule name %s, got %s", util.Rules.RateLimitFailedLogins, handler.Name)
+	}
+	if handler.Strategy != util.Strategies.Override {
+		t.Errorf("expected strategy %s, got %s", util.Strategies.Override, handler.Strategy)
+	}
+}
+
+func TestRateLimitFailedLoginsThreshold(t *testing.T) {
+	ctx := context.Background()
+
+	// clear key before test
+	if err := services.RedisClient.FlushDB(ctx).Err(); err != nil {
+		t.Fatalf("failed to flush redis: %v", err)
+	}
+
+	// first attempt
+	score, _ := EvaluateRateLimitFailedLoginsRisk(ctx, "1.1.1.1", 10*time.Second, 2)
+
+	if score != 0.0 {
+		t.Errorf("expected score 0.0, got %v", score)
+	}
+
+	// second attempt
+	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, "1.1.1.1", 10*time.Second, 2)
+
+	if score != 0.0 {
+		t.Errorf("expected score 0.0, got %v", score)
+	}
+
+	// third attempt should exceed threshold
+	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, "1.1.1.1", 10*time.Second, 2)
+
+	if score != 1.0 {
+		t.Errorf("expected score 1.0, got %v", score)
+	}
+}
