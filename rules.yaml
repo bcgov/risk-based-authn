@@ -20,7 +20,6 @@ rules:
   - name: impossibleTravel
     speedKilometersPerHour: 1000
     strategy: average
-    mmdbPath: GeoLite2-City.mmdb
  
 services:
   nats:

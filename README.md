@@ -57,7 +57,7 @@ If you use [asdf](https://asdf-vm.com/) there is a tool-versions file with the c
 
 ### Running Locally
 
-If using the GeoIP service, and mmdb file is required to do database lookups. This can be configured in the services block:
+If using the GeoIP service an mmdb file is required to do database lookups. This can be configured in the services block:
 
 ```yaml
   geoIP:
@@ -159,6 +159,12 @@ Settings:
 - **intervalSeconds**: The time interval in seconds to watch for failed attempts
 - **distinctAccounts**: The maximum number of accounts for the IP to fail to authenticate to over the interval. An amount greater than this will fail.
 
+### Impossible Travel
+
+Measures if an account has travelled faster than a given speed between logins.
+
+Settings:
+- **speedKilometersPerHour**: The maximum possible speed to allow users to have travelled.
 
 ## 🤝 Contributing
 
