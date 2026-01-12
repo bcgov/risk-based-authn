@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"context"
 	"log"
 	"os"
 	"rba/services"
@@ -39,6 +40,17 @@ type RedisConfig struct {
 
 type Rule struct {
 	Name string
+}
+
+type ctxRequestEventType struct{}
+
+func WithRequestEventType(ctx context.Context, tenant string) context.Context {
+	return context.WithValue(ctx, ctxRequestEventType{}, tenant)
+}
+
+func RequestEventTypeFromContext(ctx context.Context) (string, bool) {
+	tenant, ok := ctx.Value(ctxRequestEventType{}).(string)
+	return tenant, ok
 }
 
 func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, AuthConfig, error) {
@@ -118,6 +130,7 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 			if err != nil {
 				return nil, servicesConfig, authConfig, err
 			}
+			handlers["login"] = append(handlers["login"], handler)
 			handlers["login_failure"] = append(handlers["login_failure"], handler)
 		}
 	}

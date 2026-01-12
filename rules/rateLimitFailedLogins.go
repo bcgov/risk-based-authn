@@ -92,6 +92,25 @@ func parseRateLimitFailedLoginsRule(raw map[string]interface{}) (util.NamedRiskH
 				result.Err = &errText
 				return result
 			}
+
+			eventType, ok := RequestEventTypeFromContext(ctx)
+
+			if !ok || (eventType != "login_failure" && eventType != "login") {
+				errText := "invalid event type for rateLimitFailedLogins rule"
+				result := base
+				result.Err = &errText
+				return result
+			}
+
+			// If login is successful, reset the rate limit failed logins counter
+			if eventType == "login" {
+				err := ResetRateLimitUponSuccess(ctx, ip)
+				if err != nil {
+					fmt.Printf("Error resetting rate limit failed logins: %v\n", err)
+				}
+				return base
+			}
+
 			score, redisErr := EvaluateRateLimitFailedLoginsRisk(ctx, ip, time.Duration(rollingWindowSeconds)*time.Second, threshold)
 			result := base
 			result.Score = score

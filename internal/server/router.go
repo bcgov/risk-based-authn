@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"rba/internal/server/ruleRouter"
 	"rba/rules"
@@ -84,20 +83,13 @@ func (s *Server) EventHandler(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 
 			// Create a context with 100ms timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			ctx, cancel := context.WithTimeout(rules.WithRequestEventType(context.Background(), req.Event), 100*time.Millisecond)
 			defer cancel()
 
 			resultChan := make(chan util.RiskResult, 1)
 
 			// Need to run this in a routine so it does not block the context check for timeout
 			go func() {
-				// If login is successful, reset the rate limit failed logins counter
-				if req.Event == "login" {
-					err := rules.ResetRateLimitUponSuccess(ctx, req.Data["ip"].(string))
-					if err != nil {
-						fmt.Printf("Error resetting rate limit failed logins: %v\n", err)
-					}
-				}
 				resultChan <- namedHandler.Handler(ctx, req.Data)
 			}()
 
