@@ -57,6 +57,22 @@ If you use [asdf](https://asdf-vm.com/) there is a tool-versions file with the c
 
 ### Running Locally
 
+If using the GeoIP service, and mmdb file is required to do database lookups. This can be configured in the services block:
+
+```yaml
+  geoIP:
+    enabled: true
+    fileType: mmdb
+    path: ./GeoLite2-City2.mmdb
+    download: true
+    source:
+      sourceType: s3
+      bucketName: rba-mmdb-sandbox
+      bucketKey: GeoLite2-City.mmdb
+```
+
+For local running, set `download: false` and configure `path` to point to your file. When running on other servers, you can either use a volume mount for this file at the provided path, or configure it to be downloaded at startup from an s3 bucket. Note that these are proprietary third party files so cannot be included in the base image.
+
 1.  Create a `.env` file (optional) to configure environment variables. Example:
 
     ```

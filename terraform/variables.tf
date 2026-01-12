@@ -24,3 +24,7 @@ variable "image_tag" {
   type    = string
   default = "latest"
 }
+
+variable "geoip_s3_bucket" {
+  type    = string
+}

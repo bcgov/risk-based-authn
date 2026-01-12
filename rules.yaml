@@ -16,6 +16,11 @@ rules:
     intervalSeconds: 300
     distinctAccounts: 5
     strategy: override
+
+  - name: impossibleTravel
+    speedKilometersPerHour: 1000
+    strategy: average
+    mmdbPath: GeoLite2-City.mmdb
  
 services:
   nats:
@@ -25,6 +30,16 @@ services:
   redis:
     enabled: true
     host: redis:6379
+  geoIP:
+    enabled: true
+    # Currently only supporting mmdb, since maxmind dominates geolocation and has very fast lookup. Can add csv support later
+    fileType: mmdb
+    path: ./GeoLite2-City2.mmdb
+    download: true
+    source:
+      sourceType: s3
+      bucketName: rba-mmdb-sandbox
+      bucketKey: GeoLite2-City.mmdb
 
 auth: 
   enabled: true

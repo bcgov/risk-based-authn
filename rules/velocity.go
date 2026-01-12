@@ -71,8 +71,6 @@ func parseVelocityRule(raw map[string]interface{}) (util.NamedRiskHandler, error
 		Name:     util.Rules.Velocity,
 		Strategy: strategy,
 		Handler: func(ctx context.Context, args map[string]interface{}) util.RiskResult {
-			now := time.Now().UnixMilli()
-			println(now)
 			base := util.RiskResult{
 				Name:     util.Rules.Velocity,
 				Strategy: strategy,

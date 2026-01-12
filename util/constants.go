@@ -14,12 +14,14 @@ type rules struct {
 	Denylist             string
 	Velocity             string
 	HorizontalBruteForce string
+	ImpossibleTravel     string
 }
 
 var Rules = rules{
 	Denylist:             "denylist",
 	Velocity:             "velocity",
 	HorizontalBruteForce: "horizontalBruteForce",
+	ImpossibleTravel:     "impossibleTravel",
 }
 
 type strategies struct {
