@@ -30,6 +30,9 @@ func TestRateLimitFailedLoginsRule(t *testing.T) {
 
 func TestRateLimitFailedLoginsThreshold(t *testing.T) {
 	ctx := context.Background()
+	ip := "1.1.1.1"
+	rollingWindow := 10 * time.Second
+	threshold := 2
 
 	// clear key before test
 	if err := services.RedisClient.FlushDB(ctx).Err(); err != nil {
@@ -37,21 +40,21 @@ func TestRateLimitFailedLoginsThreshold(t *testing.T) {
 	}
 
 	// first attempt
-	score, _ := EvaluateRateLimitFailedLoginsRisk(ctx, "1.1.1.1", 10*time.Second, 2)
+	score, _ := EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
 
 	if score != 0.0 {
 		t.Errorf("expected score 0.0, got %v", score)
 	}
 
 	// second attempt
-	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, "1.1.1.1", 10*time.Second, 2)
+	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
 
 	if score != 0.0 {
 		t.Errorf("expected score 0.0, got %v", score)
 	}
 
 	// third attempt should exceed threshold
-	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, "1.1.1.1", 10*time.Second, 2)
+	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
 
 	if score != 1.0 {
 		t.Errorf("expected score 1.0, got %v", score)
