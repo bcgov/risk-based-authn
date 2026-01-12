@@ -2,7 +2,6 @@ package rules
 
 import (
 	"context"
-	"fmt"
 	"rba/services"
 	"rba/util"
 	"testing"
@@ -47,6 +46,8 @@ func TestRateLimitFailedLoginsThreshold(t *testing.T) {
 		t.Errorf("expected score 0.0, got %v", score)
 	}
 
+	time.Sleep(5 * time.Millisecond)
+
 	// second attempt
 	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
 
@@ -54,16 +55,7 @@ func TestRateLimitFailedLoginsThreshold(t *testing.T) {
 		t.Errorf("expected score 0.0, got %v", score)
 	}
 
-	key := "rateLimitFailedLogins:" + ip
-
-	now := time.Now().UnixMilli()
-	windowStart := float64(now - rollingWindow.Milliseconds())
-
-	PrintAllItemsFromKey(ctx, key)
-
-	count, _ := services.RedisClient.ZCount(ctx, key, fmt.Sprintf("%f", windowStart), "+inf").Result()
-
-	fmt.Print("Current count: ", count, "\n")
+	time.Sleep(5 * time.Millisecond)
 
 	// third attempt should exceed threshold
 	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)

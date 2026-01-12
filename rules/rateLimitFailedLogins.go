@@ -11,22 +11,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func PrintAllItemsFromKey(ctx context.Context, key string) {
-
-	// Fetch all members with scores
-	members, err := services.RedisClient.ZRangeWithScores(ctx, key, 0, -1).Result()
-	if err != nil {
-		panic(err)
-	}
-
-	// Print each member and its score
-	fmt.Println("Sorted Set Contents:")
-	for _, m := range members {
-		fmt.Printf("Member: %v, Score: %v\n", m.Member, m.Score)
-	}
-
-}
-
 func ResetRateLimitUponSuccess(ctx context.Context, ip string) error {
 	key := "rateLimitFailedLogins:" + ip
 	// Delete the key; no error if key does not exist
