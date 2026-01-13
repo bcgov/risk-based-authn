@@ -104,6 +104,17 @@ func downloadS3File(ctx context.Context, bucketName string, objectKey string, fi
 	return err
 }
 
+// Environment variable takes precedence over yamlValue.
+func configFallback(yamlValue, envKey string) (string, bool) {
+	if envValue := os.Getenv(envKey); envValue != "" {
+		return envValue, true
+	}
+	if yamlValue != "" {
+		return yamlValue, true
+	}
+	return "", false
+}
+
 func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, AuthConfig, error) {
 	var handlers = make(map[string][]util.NamedRiskHandler)
 	data, err := os.ReadFile(path)
@@ -166,16 +177,18 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 				panic("GeoIP: Only s3 accepted for file source currently")
 			}
 
-			if servicesConfig.GeoIP.Source.BucketKey == "" {
+			bucketKey, ok := configFallback(servicesConfig.GeoIP.Source.BucketKey, "GEOIP_S3_BUCKET_KEY")
+			if !ok {
 				panic("GeoIP: Must provide a valid bucket key for s3 download")
 			}
 
-			if servicesConfig.GeoIP.Source.BucketName == "" {
+			bucketName, ok := configFallback(servicesConfig.GeoIP.Source.BucketName, "GEOIP_S3_BUCKET_NAME")
+			if !ok {
 				panic("GeoIP: Must provide a valid bucket name for s3 download")
 			}
 
 			ctx := context.Background()
-			if err := downloadS3File(ctx, servicesConfig.GeoIP.Source.BucketName, servicesConfig.GeoIP.Source.BucketKey, servicesConfig.GeoIP.Path); err != nil {
+			if err := downloadS3File(ctx, bucketName, bucketKey, servicesConfig.GeoIP.Path); err != nil {
 				log.Fatalf("Failed to download geoIP file: %s", err)
 			}
 		}

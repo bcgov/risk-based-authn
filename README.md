@@ -64,14 +64,10 @@ If using the GeoIP service an mmdb file is required to do database lookups. This
     enabled: true
     fileType: mmdb
     path: ./GeoLite2-City2.mmdb
-    download: true
-    source:
-      sourceType: s3
-      bucketName: rba-mmdb-sandbox
-      bucketKey: GeoLite2-City.mmdb
+    download: false
 ```
 
-For local running, set `download: false` and configure `path` to point to your file. When running on other servers, you can either use a volume mount for this file at the provided path, or configure it to be downloaded at startup from an s3 bucket. Note that these are proprietary third party files so cannot be included in the base image.
+For local running, set `download: false` and configure `path` to point to your file. When running on other servers, you can either use a volume mount for this file at the provided path, or configure it to be downloaded at startup from an s3 bucket.
 
 1.  Create a `.env` file (optional) to configure environment variables. Example:
 
@@ -161,7 +157,7 @@ Settings:
 
 ### Impossible Travel
 
-Measures if an account has travelled faster than a given speed between logins.
+Measures if an account has travelled faster than a given speed between logins. This rule uses the geopIP service, see [here](#geoip) for more information on configuration.
 
 Settings:
 - **speedKilometersPerHour**: The maximum possible speed to allow users to have travelled.
@@ -179,6 +175,34 @@ Contributions are welcome! Please follow these steps:
 ## 💖 Thanks
 
 Thank you for checking out this project! We hope it's helpful for your risk assessment needs.
+
+## GeoIP
+
+IP location lookups currently only support mmdb file formats. When configuring the GeoIP service, you can either mount an mmdb file in a volume at a configured path, or configure to download it from an s3 bucket at startup. If using the donwload option, you can either authenticate via AWS roles (e.g. giving an ECS task role privileges to read your bucket), or if external to AWS providing the environment variables below:
+
+```
+AWS_REGION
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+```
+
+To configure which file to download, you can either set it in the config file, e.g:
+
+``` yaml
+source:
+    sourceType: s3
+    bucketName: mybucket
+    bucketKey: myfile.mmdb
+```
+
+Or set the bucket and key using the environment variables:
+
+```
+GEOIP_S3_BUCKET_KEY=myfile.mmdb
+GEOIP_S3_BUCKET_NAME=mybucket
+```
+
+If both are provided, the environment variable will be used.
 
 ## Generating sig
 

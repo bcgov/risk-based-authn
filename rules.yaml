@@ -33,12 +33,12 @@ services:
     enabled: true
     # Currently only supporting mmdb, since maxmind dominates geolocation and has very fast lookup. Can add csv support later
     fileType: mmdb
-    path: ./GeoLite2-City2.mmdb
-    download: true
+    path: ./myfile.mmdb
+    download: false
     source:
       sourceType: s3
-      bucketName: rba-mmdb-sandbox
-      bucketKey: GeoLite2-City.mmdb
+      bucketName: mybucket
+      bucketKey: myfile.mmdb
 
 auth: 
   enabled: true

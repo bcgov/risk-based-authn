@@ -56,8 +56,8 @@ resource "aws_iam_role_policy" "rba_task_role_s3" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${var.geoip_s3_bucket}",
-          "arn:aws:s3:::${var.geoip_s3_bucket}/*"
+          "arn:aws:s3:::${var.geoip_s3_bucket_name}",
+          "arn:aws:s3:::${var.geoip_s3_bucket_name}/*"
         ]
       }
     ]

@@ -33,3 +33,6 @@ main
 .DS_Store
 .terraform
 *.tfvars
+
+# MMDB files
+*.mmdb

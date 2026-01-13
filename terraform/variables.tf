@@ -28,3 +28,11 @@ variable "image_tag" {
 variable "geoip_s3_bucket" {
   type    = string
 }
+
+variable "geoip_s3_bucket_name" {
+  type = string
+}
+
+variable "geoip_s3_bucket_key" {
+  type = string
+}
