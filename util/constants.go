@@ -14,6 +14,7 @@ type rules struct {
 	Denylist              string
 	Velocity              string
 	HorizontalBruteForce  string
+	ImpossibleTravel      string
 	RateLimitFailedLogins string
 }
 
@@ -21,6 +22,7 @@ var Rules = rules{
 	Denylist:              "denylist",
 	Velocity:              "velocity",
 	HorizontalBruteForce:  "horizontalBruteForce",
+	ImpossibleTravel:      "impossibleTravel",
 	RateLimitFailedLogins: "rateLimitFailedLogins",
 }
 

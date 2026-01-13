@@ -41,7 +41,19 @@ resource "aws_ecs_task_definition" "rba" {
         {
           name  = "PORT"
           value = "8080"
-        }
+        },
+        {
+          name  = "GEOIP_S3_BUCKET_NAME"
+          value = var.geoip_s3_bucket_name
+        },
+        {
+          name  = "GEOIP_S3_BUCKET_KEY"
+          value = var.geoip_s3_bucket_key
+        },
+        {
+          name  = "REDIS_HOST"
+          value = var.redis_host
+        },
       ]
       logConfiguration = {
       logDriver = "awslogs"

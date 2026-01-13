@@ -61,6 +61,8 @@ jobs:
           TF_STATE_BUCKET_NAME=${{env.TF_STATE_BUCKET_NAME}}
           TF_VAR_subnet_a=${{vars.TF_VAR_SUBNET_A}}
           TF_VAR_subnet_b=${{vars.TF_VAR_SUBNET_B}}
+          TF_VAR_geoip_s3_bucket_name=${{vars.GEOIP_S3_BUCKET_NAME}}
+          TF_VAR_geoip_s3_bucket_key=${{vars.GEOIP_S3_BUCKET_KEY}}
           EOF
 
       - uses: hashicorp/setup-terraform@v3

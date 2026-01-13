@@ -24,3 +24,20 @@ variable "image_tag" {
   type    = string
   default = "latest"
 }
+
+variable "geoip_s3_bucket" {
+  type    = string
+}
+
+variable "geoip_s3_bucket_name" {
+  type = string
+}
+
+variable "geoip_s3_bucket_key" {
+  type = string
+}
+
+variable "redis_host" {
+  type = string
+  default = "redis"
+}
