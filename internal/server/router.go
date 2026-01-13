@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"rba/internal/server/ruleRouter"
+	"rba/rules"
 	"rba/util"
 	"sync"
 	"time"
@@ -82,7 +83,7 @@ func (s *Server) EventHandler(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 
 			// Create a context with 100ms timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			ctx, cancel := context.WithTimeout(rules.WithRequestEventType(context.Background(), req.Event), 100*time.Millisecond)
 			defer cancel()
 
 			resultChan := make(chan util.RiskResult, 1)
