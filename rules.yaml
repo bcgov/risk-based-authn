@@ -33,8 +33,8 @@ services:
     enabled: true
     # Currently only supporting mmdb, since maxmind dominates geolocation and has very fast lookup. Can add csv support later
     fileType: mmdb
-    path: ./myfile.mmdb
-    download: false
+    path: ./iplookup.mmdb
+    download: true
     source:
       sourceType: s3
       bucketName: mybucket
