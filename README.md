@@ -216,7 +216,9 @@ auth:
 
 If using HMAC, the server should be provided an env variable in the format `<API_KEY_ID>=<API_SECRET>`. e.g. `KEY_1=secret1`. You can use this format to have multiple keys on the same server.
 
-If ALLOWED_SKEW_MINUTES is set to 0 it will be ignored (useful for local development). You can use the function below to generate a signature for testing:
+If ALLOWED_SKEW_MINUTES is set to 0 it will be ignored (useful for local development). 
+
+You can use `./.bin/hmac_generator.sh` or the function below to generate a key and signature set for testing:
 
 ``` golang
 func print() {

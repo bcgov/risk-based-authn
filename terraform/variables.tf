@@ -36,3 +36,8 @@ variable "geoip_s3_bucket_name" {
 variable "geoip_s3_bucket_key" {
   type = string
 }
+
+variable "redis_host" {
+  type = string
+  default = "redis"
+}

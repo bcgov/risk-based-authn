@@ -115,6 +115,17 @@ func configFallback(yamlValue, envKey string) (string, bool) {
 	return "", false
 }
 
+type ctxRequestEventType struct{}
+
+func WithRequestEventType(ctx context.Context, tenant string) context.Context {
+	return context.WithValue(ctx, ctxRequestEventType{}, tenant)
+}
+
+func RequestEventTypeFromContext(ctx context.Context) (string, bool) {
+	tenant, ok := ctx.Value(ctxRequestEventType{}).(string)
+	return tenant, ok
+}
+
 func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, AuthConfig, error) {
 	var handlers = make(map[string][]util.NamedRiskHandler)
 	data, err := os.ReadFile(path)
@@ -157,10 +168,11 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 	}
 
 	if servicesConfig.Redis.Enabled {
-		if servicesConfig.Redis.Host == "" {
+		redisHost, ok := configFallback(servicesConfig.Redis.Host, "REDIS_HOST")
+		if !ok {
 			panic("Provide a valid redis host")
 		}
-		_, err := services.ConnectRedis(servicesConfig.Redis.Host)
+		_, err := services.ConnectRedis(redisHost)
 		if err != nil {
 			log.Println(err)
 			panic("Could not connect to redis. Please check configuration")
@@ -225,6 +237,13 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 				return nil, servicesConfig, authConfig, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
+		case util.Rules.RateLimitFailedLogins:
+			handler, err := parseRateLimitFailedLoginsRule(rawRule.Params)
+			if err != nil {
+				return nil, servicesConfig, authConfig, err
+			}
+			handlers["login"] = append(handlers["login"], handler)
+			handlers["login_failure"] = append(handlers["login_failure"], handler)
 		}
 	}
 
