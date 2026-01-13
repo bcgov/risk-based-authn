@@ -47,5 +47,5 @@ services:
       bucketKey: myfile.mmdb
 
 auth:
-  enabled: false
+  enabled: true
   method: jwt
