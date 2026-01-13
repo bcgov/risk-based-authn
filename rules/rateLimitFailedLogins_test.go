@@ -29,7 +29,7 @@ func TestRateLimitFailedLoginsRule(t *testing.T) {
 }
 
 func TestRateLimitFailedLoginsThreshold(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithRequestEventType(context.Background(), "login_failure")
 	ip := "1.1.1.1"
 	rollingWindow := 10 * time.Second
 	threshold := 2
@@ -43,7 +43,7 @@ func TestRateLimitFailedLoginsThreshold(t *testing.T) {
 	score, _ := EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
 
 	if score != 0.0 {
-		t.Errorf("expected score 0.0, got %v", score)
+		t.Errorf("expected score 0, got %v", score)
 	}
 
 	time.Sleep(5 * time.Millisecond)
@@ -52,7 +52,7 @@ func TestRateLimitFailedLoginsThreshold(t *testing.T) {
 	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
 
 	if score != 0.0 {
-		t.Errorf("expected score 0.0, got %v", score)
+		t.Errorf("expected score 0, got %v", score)
 	}
 
 	time.Sleep(5 * time.Millisecond)
@@ -60,7 +60,23 @@ func TestRateLimitFailedLoginsThreshold(t *testing.T) {
 	// third attempt should exceed threshold
 	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
 
-	if score != 1.0 {
-		t.Errorf("expected score 1.0, got %v", score)
+	if score != 1 {
+		t.Errorf("expected score 1, got %v", score)
+	}
+
+	ctx = WithRequestEventType(context.Background(), "login")
+
+	// successful login attempt should reset rate limit
+	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
+
+	if score != 0 {
+		t.Errorf("expected score 0, got %v", score)
+	}
+
+	// fourth attempt
+	score, _ = EvaluateRateLimitFailedLoginsRisk(ctx, ip, rollingWindow, threshold)
+
+	if score != 0 {
+		t.Errorf("expected score 0, got %v", score)
 	}
 }

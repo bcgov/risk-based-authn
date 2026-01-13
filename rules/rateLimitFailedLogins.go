@@ -21,6 +21,22 @@ func ResetRateLimitUponSuccess(ctx context.Context, ip string) error {
 }
 
 func EvaluateRateLimitFailedLoginsRisk(ctx context.Context, ip string, rollingWindow time.Duration, threshold int) (float64, error) {
+
+	eventType, ok := RequestEventTypeFromContext(ctx)
+
+	if !ok || (eventType != "login_failure" && eventType != "login") {
+		return 0, errors.New("invalid event type for rateLimitFailedLogins rule")
+	}
+
+	// If login is successful, reset the rate limit failed logins counter
+	if eventType == "login" {
+		err := ResetRateLimitUponSuccess(ctx, ip)
+		if err != nil {
+			fmt.Printf("Error resetting rate limit failed logins: %v\n", err)
+		}
+		return 0, nil
+	}
+
 	now := time.Now().UnixMilli()
 	windowStart := float64(now - rollingWindow.Milliseconds())
 	key := "rateLimitFailedLogins:" + ip
@@ -48,10 +64,10 @@ func EvaluateRateLimitFailedLoginsRisk(ctx context.Context, ip string, rollingWi
 	services.RedisClient.Expire(ctx, key, rollingWindow)
 
 	if count > int64(threshold) {
-		return 1.0, nil
+		return 1, nil
 	}
 
-	return 0.0, nil
+	return 0, nil
 }
 
 func parseRateLimitFailedLoginsRule(raw map[string]interface{}) (util.NamedRiskHandler, error) {
@@ -93,29 +109,11 @@ func parseRateLimitFailedLoginsRule(raw map[string]interface{}) (util.NamedRiskH
 				return result
 			}
 
-			eventType, ok := RequestEventTypeFromContext(ctx)
-
-			if !ok || (eventType != "login_failure" && eventType != "login") {
-				errText := "invalid event type for rateLimitFailedLogins rule"
-				result := base
-				result.Err = &errText
-				return result
-			}
-
-			// If login is successful, reset the rate limit failed logins counter
-			if eventType == "login" {
-				err := ResetRateLimitUponSuccess(ctx, ip)
-				if err != nil {
-					fmt.Printf("Error resetting rate limit failed logins: %v\n", err)
-				}
-				return base
-			}
-
-			score, redisErr := EvaluateRateLimitFailedLoginsRisk(ctx, ip, time.Duration(rollingWindowSeconds)*time.Second, threshold)
+			score, err := EvaluateRateLimitFailedLoginsRisk(ctx, ip, time.Duration(rollingWindowSeconds)*time.Second, threshold)
 			result := base
 			result.Score = score
-			if redisErr != nil {
-				errText := redisErr.Error()
+			if err != nil {
+				errText := err.Error()
 				result.Err = &errText
 			}
 			return result
