@@ -81,9 +81,9 @@ func parseRateLimitFailedLoginsRule(raw map[string]interface{}) (util.NamedRiskH
 		return util.NamedRiskHandler{}, errors.New("rateLimitFailedLogins: missing or invalid threshold")
 	}
 
-	rollingWindowSeconds, ok := raw["rollingWindowSeconds"].(int)
+	intervalSeconds, ok := raw["intervalSeconds"].(int)
 	if !ok {
-		return util.NamedRiskHandler{}, errors.New("rateLimitFailedLogins: missing or invalid rollingWindowSeconds")
+		return util.NamedRiskHandler{}, errors.New("rateLimitFailedLogins: missing or invalid intervalSeconds")
 	}
 
 	strategy, ok := raw["strategy"].(string)
@@ -109,7 +109,7 @@ func parseRateLimitFailedLoginsRule(raw map[string]interface{}) (util.NamedRiskH
 				return result
 			}
 
-			score, err := EvaluateRateLimitFailedLoginsRisk(ctx, ip, time.Duration(rollingWindowSeconds)*time.Second, threshold)
+			score, err := EvaluateRateLimitFailedLoginsRisk(ctx, ip, time.Duration(intervalSeconds)*time.Second, threshold)
 			result := base
 			result.Score = score
 			if err != nil {

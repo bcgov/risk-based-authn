@@ -10,9 +10,9 @@ import (
 
 func TestRateLimitFailedLoginsRule(t *testing.T) {
 	raw := map[string]interface{}{
-		"rollingWindowSeconds": 60,
-		"threshold":            5,
-		"strategy":             util.Strategies.Override,
+		"intervalSeconds": 60,
+		"threshold":       5,
+		"strategy":        util.Strategies.Override,
 	}
 
 	handler, err := parseRateLimitFailedLoginsRule(raw)
