@@ -1,13 +1,17 @@
 package util
 
+import "errors"
+
 type serviceConstants struct {
-	Redis string
-	Nats  string
+	Redis    string
+	Nats     string
+	Database string
 }
 
 var Services = serviceConstants{
-	Redis: "redis",
-	Nats:  "nats",
+	Redis:    "redis",
+	Nats:     "nats",
+	Database: "database",
 }
 
 type rules struct {
@@ -35,3 +39,19 @@ var Strategies = strategies{
 	Override: "override",
 	Average:  "average",
 }
+
+type database struct {
+	Postgres string
+	Mongo    string
+}
+
+var Databases = database{
+	Postgres: "postgres",
+	Mongo:    "mongo",
+}
+
+var (
+	ErrInvalidNetwork       = errors.New("invalid network")
+	ErrNetworkAlreadyExists = errors.New("network already exists")
+	ErrUnknown              = errors.New("unknown server error")
+)

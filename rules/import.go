@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"rba/services"
+	"rba/services/database"
 	"rba/types"
 	"rba/util"
 
@@ -15,13 +16,20 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Rules    []types.RuleConfig `yaml:"rules"`
-	Services ServicesConfig     `yaml:"services"`
-	Auth     AuthConfig         `yaml:"auth"`
+	Rules        []types.RuleConfig `yaml:"rules"`
+	Services     ServicesConfig     `yaml:"services"`
+	Auth         AuthConfig         `yaml:"auth"`
+	EventStorage EventStorageConfig `yaml:"eventStorage"`
+}
+
+type EventStorageConfig struct {
+	Enabled  bool    `yaml:"enabled"`
+	MinScore float64 `yaml:"minScore" validate:"required_if=Enabled true,gte=0,lte=1"`
 }
 
 type AuthConfig struct {
@@ -30,9 +38,16 @@ type AuthConfig struct {
 }
 
 type ServicesConfig struct {
-	Redis RedisConfig `yaml:"redis"`
-	Nats  NatsConfig  `yaml:"nats"`
-	GeoIP GeoIPConfig `yaml:"geoIP"`
+	Redis    RedisConfig    `yaml:"redis"`
+	Nats     NatsConfig     `yaml:"nats"`
+	GeoIP    GeoIPConfig    `yaml:"geoIP"`
+	Database DatabaseConfig `yaml:"database"`
+}
+
+type DatabaseConfig struct {
+	Enabled    bool      `yaml:"enabled"`
+	Type       string    `yaml:"type"`
+	Connection yaml.Node `yaml:"connection"`
 }
 
 type GeoIPConfig struct {
@@ -104,17 +119,6 @@ func downloadS3File(ctx context.Context, bucketName string, objectKey string, fi
 	return err
 }
 
-// Environment variable takes precedence over yamlValue.
-func configFallback(yamlValue, envKey string) (string, bool) {
-	if envValue := os.Getenv(envKey); envValue != "" {
-		return envValue, true
-	}
-	if yamlValue != "" {
-		return yamlValue, true
-	}
-	return "", false
-}
-
 type ctxRequestEventType struct{}
 
 func WithRequestEventType(ctx context.Context, tenant string) context.Context {
@@ -126,22 +130,20 @@ func RequestEventTypeFromContext(ctx context.Context) (string, bool) {
 	return tenant, ok
 }
 
-func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig, AuthConfig, error) {
+func LoadConfig(path string) (map[string][]util.NamedRiskHandler, Config, error) {
 	var handlers = make(map[string][]util.NamedRiskHandler)
 	data, err := os.ReadFile(path)
 
-	var servicesConfig = ServicesConfig{}
-	var authConfig = AuthConfig{}
+	var cfg = Config{}
 
 	if err != nil {
-		return nil, servicesConfig, authConfig, err
+		return nil, cfg, err
 	}
 
 	// Parse the yaml into cfg. Then iterate through rules pushing to the provided parser
-	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		log.Println(err)
-		return nil, servicesConfig, authConfig, err
+		return nil, cfg, err
 	}
 
 	if cfg.Auth.Enabled {
@@ -150,25 +152,22 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 		}
 	}
 
-	authConfig = cfg.Auth
-	servicesConfig = cfg.Services
-
 	// Parse Services and ensure connections setup.
-	if servicesConfig.Nats.Enabled {
-		if servicesConfig.Nats.Threshold < 0 || servicesConfig.Nats.Threshold > 1 {
+	if cfg.Services.Nats.Enabled {
+		if cfg.Services.Nats.Threshold < 0 || cfg.Services.Nats.Threshold > 1 {
 			panic("Threshold for publishing must be between 0 and 1")
 		}
-		if servicesConfig.Nats.Url == "" {
+		if cfg.Services.Nats.Url == "" {
 			panic("Provide a valid nats URL")
 		}
-		_, err := services.ConnectNats(servicesConfig.Nats.Url)
+		_, err := services.ConnectNats(cfg.Services.Nats.Url)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	if servicesConfig.Redis.Enabled {
-		redisHost, ok := configFallback(servicesConfig.Redis.Host, "REDIS_HOST")
+	if cfg.Services.Redis.Enabled {
+		redisHost, ok := util.ConfigFallback(cfg.Services.Redis.Host, "REDIS_HOST")
 		if !ok {
 			panic("Provide a valid redis host")
 		}
@@ -179,33 +178,52 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 		}
 	}
 
-	if servicesConfig.GeoIP.Enabled {
-		if servicesConfig.GeoIP.FileType != "mmdb" {
+	if cfg.Services.Database.Enabled {
+		databaseType, ok := util.ConfigFallback(cfg.Services.Database.Type, "DATABASE_TYPE")
+		if !ok {
+			log.Fatal("Must provide a database type when enabled")
+		}
+
+		if err := database.ConnectDatabase(databaseType, cfg.Services.Database.Connection); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	eventStorageConfig := cfg.EventStorage
+	if err := validator.New(validator.WithRequiredStructEnabled()).Struct(eventStorageConfig); err != nil {
+		log.Fatal(err)
+	}
+	if eventStorageConfig.Enabled && !cfg.Services.Database.Enabled {
+		log.Fatal("event storage requires a configured database")
+	}
+
+	if cfg.Services.GeoIP.Enabled {
+		if cfg.Services.GeoIP.FileType != "mmdb" {
 			panic("Currently only supporting mmdb filetypes for GeoIP configuration")
 		}
 
-		if servicesConfig.GeoIP.Download == true {
-			if servicesConfig.GeoIP.Source.SourceType != "s3" {
+		if cfg.Services.GeoIP.Download == true {
+			if cfg.Services.GeoIP.Source.SourceType != "s3" {
 				panic("GeoIP: Only s3 accepted for file source currently")
 			}
 
-			bucketKey, ok := configFallback(servicesConfig.GeoIP.Source.BucketKey, "GEOIP_S3_BUCKET_KEY")
+			bucketKey, ok := util.ConfigFallback(cfg.Services.GeoIP.Source.BucketKey, "GEOIP_S3_BUCKET_KEY")
 			if !ok {
 				panic("GeoIP: Must provide a valid bucket key for s3 download")
 			}
 
-			bucketName, ok := configFallback(servicesConfig.GeoIP.Source.BucketName, "GEOIP_S3_BUCKET_NAME")
+			bucketName, ok := util.ConfigFallback(cfg.Services.GeoIP.Source.BucketName, "GEOIP_S3_BUCKET_NAME")
 			if !ok {
 				panic("GeoIP: Must provide a valid bucket name for s3 download")
 			}
 
 			ctx := context.Background()
-			if err := downloadS3File(ctx, bucketName, bucketKey, servicesConfig.GeoIP.Path); err != nil {
+			if err := downloadS3File(ctx, bucketName, bucketKey, cfg.Services.GeoIP.Path); err != nil {
 				log.Fatalf("Failed to download geoIP file: %s", err)
 			}
 		}
 		// Init the db to ensure file validity
-		_, err = services.InitCityDB(servicesConfig.GeoIP.Path)
+		_, err = services.InitCityDB(cfg.Services.GeoIP.Path)
 		if err != nil {
 			log.Fatalf("Could not open mmdb: %s", err)
 		}
@@ -216,36 +234,36 @@ func LoadConfig(path string) (map[string][]util.NamedRiskHandler, ServicesConfig
 		case util.Rules.Velocity:
 			handler, err := parseVelocityRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, authConfig, err
+				return nil, cfg, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 		case util.Rules.Denylist:
-			handler, err := parseDenylistRule(rawRule.Params)
+			handler, err := parseDenylistRule(rawRule.Config)
 			if err != nil {
-				return nil, servicesConfig, authConfig, err
+				return nil, cfg, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 		case util.Rules.HorizontalBruteForce:
 			handler, err := parseHorizontalBruteForceRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, authConfig, err
+				return nil, cfg, err
 			}
 			handlers["login_failure"] = append(handlers["login_failure"], handler)
 		case util.Rules.ImpossibleTravel:
 			handler, err := parseImpossibleTravelRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, authConfig, err
+				return nil, cfg, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 		case util.Rules.RateLimitFailedLogins:
 			handler, err := parseRateLimitFailedLoginsRule(rawRule.Params)
 			if err != nil {
-				return nil, servicesConfig, authConfig, err
+				return nil, cfg, err
 			}
 			handlers["login"] = append(handlers["login"], handler)
 			handlers["login_failure"] = append(handlers["login_failure"], handler)
 		}
 	}
 
-	return handlers, servicesConfig, authConfig, nil
+	return handlers, cfg, nil
 }

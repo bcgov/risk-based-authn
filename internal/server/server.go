@@ -13,18 +13,16 @@ import (
 type Server struct {
 	port         int
 	riskHandlers map[string][]util.NamedRiskHandler
-	services     rules.ServicesConfig
-	authConfig   rules.AuthConfig
+	cfg          rules.Config
 }
 
-func NewServer(riskHandlers map[string][]util.NamedRiskHandler, services rules.ServicesConfig, authConfig rules.AuthConfig) *http.Server {
+func NewServer(riskHandlers map[string][]util.NamedRiskHandler, cfg rules.Config) *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 
 	NewServer := &Server{
 		port:         port,
 		riskHandlers: riskHandlers,
-		services:     services,
-		authConfig:   authConfig,
+		cfg:          cfg,
 	}
 
 	server := &http.Server{
