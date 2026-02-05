@@ -3,9 +3,11 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"rba/internal/server/ruleRouter"
 	"rba/rules"
+	"rba/services/database"
 	"rba/util"
 	"sync"
 	"time"
@@ -34,7 +36,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// Group for routes requiring auth
 	r.Group(func(protected chi.Router) {
-		protected.Use(AuthMiddleware(s.authConfig))
+		protected.Use(AuthMiddleware(s.cfg.Auth))
 		protected.Post("/event", s.EventHandler)
 
 		protected.Mount("/configuration/rules/denylist", ruleRouter.DenyListRouter())
@@ -122,7 +124,18 @@ func (s *Server) EventHandler(w http.ResponseWriter, r *http.Request) {
 
 	avg, results := util.CalculateRisk(riskAssessments)
 
-	if s.services.Nats.Enabled && avg > float64(s.services.Nats.Threshold) {
+	if s.cfg.EventStorage.Enabled && avg >= s.cfg.EventStorage.MinScore {
+		db, err := database.GetDB()
+		if err != nil {
+			log.Printf("failed to get database: %v", err)
+		}
+		ctx := context.Background()
+		if err := db.CreateEvent(ctx, avg, results); err != nil {
+			log.Print(err)
+		}
+	}
+
+	if s.cfg.Services.Nats.Enabled && avg > float64(s.cfg.Services.Nats.Threshold) {
 		util.PublishMessage(results)
 	}
 

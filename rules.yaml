@@ -5,12 +5,13 @@ rules:
     strategy: average
 
   - name: denylist
-    sourceList: redis
-    ips:
-      - 1.2.3.4
-    cidrs:
-      - 192.168.1.0/24
-    strategy: override
+    config:
+      sourceList: database
+      ips:
+        - 1.2.3.4
+      cidrs:
+        - 192.168.1.0/24
+      strategy: override
 
   - name: horizontalBruteForce
     intervalSeconds: 300
@@ -45,6 +46,20 @@ services:
       sourceType: s3
       bucketName: mybucket
       bucketKey: myfile.mmdb
+  database:
+    enabled: true
+    type: postgres
+    connection:
+      host: localhost
+      port: 0
+      username: postgres
+      password: postgres
+      databaseName: rba
+      sslMode: disable
+
+eventStorage:
+  enabled: true
+  minScore: 0.5
 
 auth:
   enabled: true

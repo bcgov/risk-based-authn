@@ -13,7 +13,7 @@ func TestHandler(t *testing.T) {
 	newServer := &Server{
 		port:         8080,
 		riskHandlers: map[string][]util.NamedRiskHandler{},
-		services:     rules.ServicesConfig{},
+		cfg:          rules.Config{},
 	}
 
 	// Create an httptest server from your handler

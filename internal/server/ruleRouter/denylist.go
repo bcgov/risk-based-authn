@@ -2,17 +2,16 @@ package ruleRouter
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"rba/rules"
+	"rba/util"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type DenylistGetResponse struct {
-	CIDRs []string `json:"cidrs"`
-	IPs   []string `json:"ips"`
+	Networks []string `json:"networks"`
 }
 
 func DenyListRouter() chi.Router {
@@ -20,31 +19,23 @@ func DenyListRouter() chi.Router {
 	router := chi.NewRouter()
 
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		cidrs, errCode, err := rules.GetDenylistParams(r.Context(), "cidrs")
+		networks, err := rules.Denylist.GetNetworks(r.Context())
 		if err != nil {
-			log.Print(err)
-			http.Error(w, err.Error(), errCode)
-			return
-		}
-
-		ips, errCode, err := rules.GetDenylistParams(r.Context(), "ips")
-		if err != nil {
-			log.Print(err)
-			http.Error(w, err.Error(), errCode)
+			http.Error(w, err.Error(), util.HttpStatusCodeForError(err))
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 
 		response := DenylistGetResponse{
-			CIDRs: cidrs,
-			IPs:   ips,
+			Networks: networks,
 		}
 
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 	})
 
 	router.Put("/", func(w http.ResponseWriter, r *http.Request) {
@@ -61,18 +52,17 @@ func DenyListRouter() chi.Router {
 
 		defer r.Body.Close()
 
-		errCode, err := rules.UpdateDenylistParam(r.Context(), payload.Value, payload.ParamType, "add")
+		err := rules.Denylist.AddNetwork(r.Context(), payload.Value)
 		if err != nil {
-			http.Error(w, err.Error(), errCode)
+			http.Error(w, err.Error(), util.HttpStatusCodeForError(err))
 			return
 		}
 
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusOK)
 	})
 
-	router.Delete("/{paramType}/{entry}", func(w http.ResponseWriter, r *http.Request) {
+	router.Delete("/{entry}", func(w http.ResponseWriter, r *http.Request) {
 		rawEntry := chi.URLParam(r, "entry")
-		paramType := chi.URLParam(r, "paramType")
 
 		entry, err := url.PathUnescape(rawEntry)
 		if err != nil {
@@ -80,13 +70,13 @@ func DenyListRouter() chi.Router {
 			return
 		}
 
-		errCode, err := rules.RemoveDenylistEntry(r.Context(), paramType, entry)
+		err = rules.Denylist.RemoveNetwork(r.Context(), entry)
 		if err != nil {
-			http.Error(w, err.Error(), errCode)
+			http.Error(w, err.Error(), util.HttpStatusCodeForError(err))
 			return
 		}
 
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusOK)
 	})
 
 	return router
